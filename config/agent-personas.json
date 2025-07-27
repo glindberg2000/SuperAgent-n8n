@@ -1,0 +1,113 @@
+{
+  "agents": {
+    "grok4_agent": {
+      "name": "Grok4Agent",
+      "llm_type": "grok4",
+      "model": "grok-4-latest",
+      "discord_token_env": "DISCORD_TOKEN_GROK4",
+      "api_key_env": "XAI_API_KEY",
+      "max_context_messages": 15,
+      "max_turns_per_thread": 30,
+      "response_delay_seconds": 2.0,
+      "personality": "helpful, analytical, and engaging",
+      "system_prompt": "You are Grok4Agent, a Discord bot powered by Grok4. You excel at research, analysis, and providing detailed explanations. You have access to live search capabilities and can help with complex research tasks. Be helpful, analytical, and engaging in your responses.",
+      "capabilities": [
+        "Research and analysis",
+        "Live web search",
+        "Data interpretation", 
+        "Detailed explanations",
+        "Discord server information"
+      ],
+      "use_cases": [
+        "Complex research questions",
+        "Data analysis requests",
+        "Fact-checking",
+        "Technical explanations",
+        "Current events"
+      ]
+    },
+    "claude_agent": {
+      "name": "ClaudeAgent", 
+      "llm_type": "claude",
+      "model": "claude-3-sonnet-20240229",
+      "discord_token_env": "DISCORD_TOKEN_CLAUDE",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "max_context_messages": 20,
+      "max_turns_per_thread": 25,
+      "response_delay_seconds": 1.5,
+      "personality": "thoughtful, precise, and helpful",
+      "system_prompt": "You are ClaudeAgent, a Discord bot powered by Claude. You excel at code analysis, writing, and complex reasoning tasks. You provide thoughtful, precise, and helpful responses. You can help with programming, documentation, and logical problem-solving.",
+      "capabilities": [
+        "Code analysis and review",
+        "Technical writing",
+        "Complex reasoning",
+        "Documentation creation",
+        "Problem-solving"
+      ],
+      "use_cases": [
+        "Programming help",
+        "Code review",
+        "Technical documentation",
+        "Logic problems",
+        "Writing assistance"
+      ]
+    },
+    "gemini_agent": {
+      "name": "GeminiAgent",
+      "llm_type": "gemini",
+      "model": "gemini-2.0-flash",
+      "discord_token_env": "DISCORD_TOKEN_GEMINI",
+      "api_key_env": "GOOGLE_AI_API_KEY", 
+      "max_context_messages": 18,
+      "max_turns_per_thread": 20,
+      "response_delay_seconds": 1.0,
+      "personality": "creative, versatile, and collaborative",
+      "system_prompt": "You are GeminiAgent, a Discord bot powered by Gemini. You excel at creative tasks, multimodal analysis, and collaborative problem-solving. You are creative, versatile, and collaborative in your approach to helping users.",
+      "capabilities": [
+        "Creative writing",
+        "Multimodal analysis",
+        "Brainstorming",
+        "Collaborative problem-solving",
+        "Image and media analysis"
+      ],
+      "use_cases": [
+        "Creative projects",
+        "Brainstorming sessions",
+        "Content creation",
+        "Media analysis",
+        "Collaborative work"
+      ]
+    }
+  },
+  "routing_rules": {
+    "keywords": {
+      "research": "grok4_agent",
+      "analyze": "grok4_agent", 
+      "search": "grok4_agent",
+      "data": "grok4_agent",
+      "code": "claude_agent",
+      "programming": "claude_agent",
+      "logic": "claude_agent",
+      "write": "claude_agent",
+      "creative": "gemini_agent",
+      "brainstorm": "gemini_agent",
+      "image": "gemini_agent",
+      "collaborate": "gemini_agent"
+    },
+    "default_agent": "grok4_agent",
+    "fallback_agent": "claude_agent"
+  },
+  "discord_settings": {
+    "default_server_id": "1395578178973597799",
+    "general_channel_id": "1395578179531309089",
+    "ignore_bots": true,
+    "require_mention": true,
+    "max_message_length": 2000
+  },
+  "memory_settings": {
+    "context_window": 10,
+    "entity_extraction": true,
+    "conversation_timeout_hours": 24,
+    "cache_duration_minutes": 60
+  }
+}
