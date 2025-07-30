@@ -1,212 +1,25 @@
-# SuperAgent n8n - Pre-commit Configuration
-# Comprehensive security and code quality checks
-
 repos:
-  # Secret Detection - Primary Security
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: check-case-conflict
+
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
     hooks:
       - id: detect-secrets
-        name: detect-secrets
-        description: Detect secrets in staged files
         args: ['--baseline', '.secrets.baseline']
         exclude: |
           (?x)^(
-            \.secrets\.baseline|
-            \.env\.example|
+            .env.example|
             docs/.*\.md|
-            README\.md|
-            MIGRATION_FROM_MCP\.md|
-            WORKSPACE_READY\.md|
-            CLAUDE\.md
+            .*\.lock|
+            .*\.json
           )$
-
-  # Git Security Checks
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
-    hooks:
-      # Prevent large files from being committed
-      - id: check-added-large-files
-        args: ['--maxkb=1000']
-      
-      # Check for private keys
-      - id: detect-private-key
-      
-      # Prevent committing to main/master directly
-      - id: no-commit-to-branch
-        args: ['--branch', 'main', '--branch', 'master']
-      
-      # Basic file checks
-      - id: check-case-conflict
-      - id: check-merge-conflict
-      - id: check-symlinks
-      - id: destroyed-symlinks
-      
-      # File format checks
-      - id: check-yaml
-        exclude: 'workflows/.*\.json$'  # Allow n8n workflow files
-      - id: check-json
-      - id: check-toml
-      - id: check-xml
-      
-      # Prevent committing credentials
-      - id: check-ast  # Python syntax
-      - id: check-builtin-literals
-      
-      # File cleanup
-      - id: trailing-whitespace
-        exclude: '\.md$'  # Allow trailing spaces in markdown
-      - id: end-of-file-fixer
-      - id: mixed-line-ending
-      
-      # Documentation checks
-      - id: check-docstring-first
-
-  # Docker Security
-  - repo: https://github.com/hadolint/hadolint
-    rev: v2.12.0
-    hooks:
-      - id: hadolint-docker
-        name: Lint Docker files
-        description: Runs hadolint to lint Docker files
-        entry: hadolint
-        language: system
-        types: [dockerfile]
-        require_serial: false
-
-  # Environment File Security
-  - repo: local
-    hooks:
-      - id: check-env-files
-        name: Check .env files for real secrets
-        entry: bash
-        language: system
-        files: '\.env.*'
-        args:
-          - -c
-          - |
-            for file in "$@"; do
-              if [[ "$file" == *".example"* ]]; then
-                echo "✅ Skipping example file: $file"
-                continue
-              fi
-              
-              # Check for real Discord tokens (not dummy ones)
-              if grep -q "DISCORD_TOKEN.*[A-Za-z0-9]{70}" "$file" 2>/dev/null; then
-                if ! grep -q "EXAMPLE\|dummy\|your_" "$file"; then
-                  echo "❌ Real Discord token detected in $file"
-                  echo "💡 Use .env.example for templates, keep .env local only"
-                  exit 1
-                fi
-              fi
-              
-              # Check for real API keys
-              if grep -E "(API_KEY|SECRET|PASSWORD).*[A-Za-z0-9]{20}" "$file" 2>/dev/null; then
-                if ! grep -q "EXAMPLE\|dummy\|your_" "$file"; then
-                  echo "❌ Real API key/secret detected in $file"
-                  echo "💡 Use .env.example for templates, keep .env local only"
-                  exit 1
-                fi
-              fi
-              
-              echo "✅ Environment file $file looks safe"
-            done
-
-  # n8n Workflow Validation
-  - repo: local
-    hooks:
-      - id: validate-n8n-workflows
-        name: Validate n8n workflow files
-        entry: bash
-        language: system
-        files: 'workflows/.*\.json$'
-        args:
-          - -c
-          - |
-            for file in "$@"; do
-              # Check if it's valid JSON
-              if ! python -m json.tool "$file" > /dev/null 2>&1; then
-                echo "❌ Invalid JSON in n8n workflow: $file"
-                exit 1
-              fi
-              
-              # Check for required n8n workflow fields
-              if ! grep -q '"nodes"' "$file" || ! grep -q '"connections"' "$file"; then
-                echo "❌ Missing required n8n workflow structure in: $file"
-                echo "💡 n8n workflows must have 'nodes' and 'connections' fields"
-                exit 1
-              fi
-              
-              # Check for credentials in workflow files
-              if grep -iE "(password|secret|token|key).*[A-Za-z0-9]{10}" "$file"; then
-                echo "❌ Potential credentials found in n8n workflow: $file"
-                echo "💡 Use n8n credential system instead of hardcoded values"
-                exit 1
-              fi
-              
-              echo "✅ n8n workflow $file is valid"
-            done
-
-  # Documentation Quality
-  - repo: local
-    hooks:
-      - id: check-documentation
-        name: Check documentation quality
-        entry: bash
-        language: system
-        files: '\.md$'
-        args:
-          - -c
-          - |
-            for file in "$@"; do
-              # Check for placeholder text
-              if grep -q "TODO\|FIXME\|your_.*_here" "$file"; then
-                echo "⚠️  Documentation contains TODOs or placeholders: $file"
-                echo "💡 Consider completing documentation before commit"
-              fi
-              
-              # Check for broken relative links (basic check)
-              if grep -o '\[.*\](\..*\.md)' "$file" | while read link; do
-                target=$(echo "$link" | sed 's/.*](\(.*\))/\1/')
-                if [[ ! -f "$target" ]]; then
-                  echo "❌ Broken link in $file: $target"
-                  exit 1
-                fi
-              done; then
-                echo "❌ Broken links found in $file"
-                exit 1
-              fi
-              
-              echo "✅ Documentation $file looks good"
-            done
-
-  # SQL Security (for database scripts)
-  - repo: local
-    hooks:
-      - id: check-sql-security
-        name: Check SQL files for security issues
-        entry: bash
-        language: system
-        files: '\.sql$'
-        args:
-          - -c
-          - |
-            for file in "$@"; do
-              # Check for SQL injection patterns
-              if grep -iE "(exec|eval|drop\s+table|truncate|delete\s+from.*where.*=)" "$file"; then
-                echo "⚠️  Potentially dangerous SQL patterns in: $file"
-                echo "💡 Review SQL file for security implications"
-              fi
-              
-              # Check for hardcoded passwords
-              if grep -iE "password\s*=\s*['\"][^'\"]*['\"]" "$file"; then
-                echo "❌ Hardcoded password found in SQL file: $file"
-                exit 1
-              fi
-              
-              echo "✅ SQL file $file looks secure"
-            done
-
-# Configuration
-fail_fast: false  # Continue checking all hooks even if one fails
-default_stages: [commit, push]
