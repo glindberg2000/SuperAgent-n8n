@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BotForge System Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shadcn.css') }}">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: hsl(var(--background));
+            color: hsl(var(--foreground));
+            margin: 0;
+            padding: 0;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+            color: hsl(var(--primary-foreground));
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .dashboard-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-top: 0.5rem;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .system-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .system-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .component-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .component-details {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+            margin-left: 1.5rem;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .refresh-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+            border: none;
+            border-radius: calc(var(--radius));
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.2s;
+        }
+
+        .refresh-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        .activity-chart {
+            height: 200px;
+            background: hsl(var(--muted));
+            border-radius: calc(var(--radius));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: hsl(var(--muted-foreground));
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="dashboard-container">
+            <h1 class="dashboard-title">
+                🤖 BotForge System Dashboard
+            </h1>
+            <p class="dashboard-subtitle">
+                Real-time monitoring of Discord bots, PostgreSQL, MCP tools, and system health
+            </p>
+        </div>
+    </div>
+
+    <div class="dashboard-container">
+        <!-- System Overview -->
+        <div class="overview-grid">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">System Status</h3>
+                    <p class="card-description">Overall health of all components</p>
+                </div>
+                <div class="card-content">
+                    <div class="component-status">
+                        <div class="status-dot {{ 'online' if system_health.database.status == 'healthy' else 'error' }}"></div>
+                        <span>PostgreSQL Database</span>
+                        <span class="badge {{ 'success' if system_health.database.status == 'healthy' else 'error' }}">
+                            {{ system_health.database.status | title }}
+                        </span>
+                    </div>
+                    {% if system_health.database.status == 'healthy' %}
+                    <div class="component-details">
+                        PostgreSQL {{ system_health.database.details.version if system_health.database.details.version else 'Unknown' }} •
+                        {{ system_health.database.details.total_messages if system_health.database.details.total_messages else '0' }} messages •
+                        {{ system_health.database.details.unique_users if system_health.database.details.unique_users else '0' }} users
+                    </div>
+                    {% endif %}
+
+                    <div class="component-status">
+                        <div class="status-dot {{ 'online' if system_health.api_server.status == 'healthy' else 'error' }}"></div>
+                        <span>API Server</span>
+                        <span class="badge {{ 'success' if system_health.api_server.status == 'healthy' else 'error' }}">
+                            {{ system_health.api_server.status | title }}
+                        </span>
+                    </div>
+                    {% if system_health.api_server.status == 'healthy' %}
+                    <div class="component-details">
+                        Response time: {{ system_health.api_server.details.response_time }}
+                    </div>
+                    {% endif %}
+
+                    <div class="component-status">
+                        <div class="status-dot {{ 'online' if system_health.docker_containers.status == 'healthy' else 'warning' }}"></div>
+                        <span>Docker Containers</span>
+                        <span class="badge {{ 'success' if system_health.docker_containers.status == 'healthy' else 'warning' }}">
+                            {{ system_health.docker_containers.status | title }}
+                        </span>
+                    </div>
+                    <div class="component-details">
+                        {{ system_health.docker_containers.details | length }} containers running
+                    </div>
+
+                    <div class="component-status">
+                        <div class="status-dot {{ 'online' if system_health.mcp_tools.status == 'healthy' else 'warning' }}"></div>
+                        <span>MCP Tools</span>
+                        <span class="badge {{ 'success' if system_health.mcp_tools.status == 'healthy' else 'warning' }}">
+                            {{ system_health.mcp_tools.status | title }}
+                        </span>
+                    </div>
+                    <div class="component-details">
+                        {{ system_health.mcp_tools.details | length }} bots with tools loaded
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Bot Activity</h3>
+                    <p class="card-description">Discord bot performance metrics</p>
+                </div>
+                <div class="card-content">
+                    <div class="metric-grid">
+                        {% for bot in bot_metrics.bot_metrics %}
+                        <div class="metric-card">
+                            <div class="metric-value">{{ bot.total_responses }}</div>
+                            <div class="metric-label">{{ bot.bot_name }} Responses</div>
+                        </div>
+                        {% endfor %}
+
+                        <div class="metric-card">
+                            <div class="metric-value">{{ system_health.memory_system.details.conversations_24h if system_health.memory_system.status == 'healthy' else 0 }}</div>
+                            <div class="metric-label">Messages (24h)</div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-value">{{ system_health.memory_system.details.active_channels if system_health.memory_system.status == 'healthy' else 0 }}</div>
+                            <div class="metric-label">Active Channels</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Memory System</h3>
+                    <p class="card-description">Conversation history and storage</p>
+                </div>
+                <div class="card-content">
+                    {% if system_health.memory_system.status == 'healthy' %}
+                    <div class="status-indicator">
+                        <div class="status-dot online"></div>
+                        <span>Memory system operational</span>
+                    </div>
+                    <div class="component-details">
+                        Last activity: {{ system_health.memory_system.details.last_activity[:19] if system_health.memory_system.details.last_activity else 'None' }}
+                    </div>
+                    <div class="component-details">
+                        Vector extension: {{ 'Enabled' if system_health.database.details.vector_enabled else 'Disabled' }}
+                    </div>
+                    {% else %}
+                    <div class="status-indicator">
+                        <div class="status-dot error"></div>
+                        <span>Memory system error</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed System Information -->
+        <div class="system-grid">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Docker Containers</h3>
+                    <p class="card-description">Container status and health</p>
+                </div>
+                <div class="card-content">
+                    {% for name, details in system_health.docker_containers.details.items() %}
+                    <div class="component-status">
+                        <div class="status-dot {{ 'online' if details.status == 'running' else 'error' }}"></div>
+                        <span>{{ name }}</span>
+                        <span class="badge {{ 'success' if details.status == 'running' else 'error' }}">
+                            {{ details.status | title }}
+                        </span>
+                    </div>
+                    <div class="component-details">
+                        Image: {{ details.image }} • Created: {{ details.created }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">MCP Tools Status</h3>
+                    <p class="card-description">Available tools per bot</p>
+                </div>
+                <div class="card-content">
+                    {% for bot_id, tools in system_health.mcp_tools.details.items() %}
+                    <div class="component-status">
+                        <div class="status-dot online"></div>
+                        <span>{{ bot_id | title }}</span>
+                        <span class="badge success">{{ tools.tool_count }} tools</span>
+                    </div>
+                    <div class="component-details">
+                        Tools: {{ tools.tools_loaded | join(', ') }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Chart -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Activity Timeline</h3>
+                <p class="card-description">Message activity over the last 24 hours</p>
+            </div>
+            <div class="card-content">
+                <div class="activity-chart">
+                    {% if bot_metrics.hourly_activity %}
+                    <!-- Activity chart would go here - could integrate Chart.js -->
+                    <p>{{ bot_metrics.hourly_activity | length }} hours of activity data available</p>
+                    {% else %}
+                    <p>No activity data available</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Quick Actions</h3>
+                <p class="card-description">System management and monitoring</p>
+            </div>
+            <div class="card-content">
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <a href="/bot/grok4" class="badge">Configure Grok4</a>
+                    <a href="/bot/claude" class="badge secondary">Configure Claude</a>
+                    <a href="/logs" class="badge outline">View Logs</a>
+                    <button onclick="refreshData()" class="badge success">Refresh Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button class="refresh-button" onclick="refreshData()">
+        🔄 Refresh
+    </button>
+
+    <script>
+        function refreshData() {
+            location.reload();
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(refreshData, 30000);
+
+        // Real-time status updates
+        function updateSystemStatus() {
+            fetch('/api/system/health')
+                .then(response => response.json())
+                .then(data => {
+                    // Update status indicators
+                    console.log('System health updated:', data);
+                })
+                .catch(error => console.error('Error fetching system health:', error));
+        }
+
+        // Update status every 10 seconds
+        setInterval(updateSystemStatus, 10000);
+    </script>
+</body>
+</html>

@@ -6,7 +6,7 @@
     <title>BotForge Dashboard</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
+        body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f5f5f5;
             color: #333;
@@ -18,9 +18,9 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .header h1 { font-size: 2rem; font-weight: 300; }
-        .container { 
-            max-width: 1200px; 
-            margin: 2rem auto; 
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
             padding: 0 2rem;
         }
         .stats-grid {
@@ -55,9 +55,9 @@
             padding: 1.5rem;
             border-bottom: 1px solid #eee;
         }
-        .bot-name { 
-            font-size: 1.25rem; 
-            font-weight: 600; 
+        .bot-name {
+            font-size: 1.25rem;
+            font-weight: 600;
             margin-bottom: 0.5rem;
         }
         .bot-status {
@@ -118,6 +118,7 @@
         <h1>🤖 BotForge Dashboard</h1>
         <div class="nav-links">
             <a href="/">Dashboard</a>
+            <a href="/system">System Monitor</a>
             <a href="/logs">Logs</a>
         </div>
     </div>
@@ -178,7 +179,7 @@
                     {% endif %}
                 </div>
                 <div class="bot-actions">
-                    <button class="btn {{ 'btn-danger' if bot_config.enabled else 'btn-success' }}" 
+                    <button class="btn {{ 'btn-danger' if bot_config.enabled else 'btn-success' }}"
                             onclick="toggleBot('{{ bot_id }}')">
                         {{ 'Disable' if bot_config.enabled else 'Enable' }}
                     </button>
@@ -212,7 +213,7 @@
         fetch('/api/system/status')
             .then(response => response.json())
             .then(data => {
-                document.getElementById('system-status').textContent = 
+                document.getElementById('system-status').textContent =
                     data.database_connected ? '🟢' : '🔴';
             })
             .catch(() => {
