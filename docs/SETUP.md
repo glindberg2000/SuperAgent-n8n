@@ -1,283 +1,240 @@
-# SuperAgent n8n - Setup Guide
+# Setup Guide
 
-## 🚀 Quick Start (5 Minutes)
+**Complete deployment instructions for SuperAgent n8n Discord bot.**
 
-### Prerequisites
-- Docker and Docker Compose
-- Discord bot tokens
-- LLM API keys (Grok4, Claude, Gemini)
+## Prerequisites
 
-### 1. Clone and Configure
+- **Python 3.8+** with pip
+- **Docker & Docker Compose** 
+- **Discord Bot Token** - [Create one here](https://discord.com/developers/applications)
+- **Grok4 API Key** - [Get from x.ai](https://x.ai)
+
+## Environment Setup
+
+### 1. Clone Repository
 ```bash
-git clone <repo-url>
+git clone https://github.com/your-username/SuperAgent-n8n.git
 cd SuperAgent-n8n
+```
+
+### 2. Python Environment
+```bash
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# .venv\Scripts\activate     # Windows
+
+# Install dependencies
+pip install -r requirements-api.txt
+```
+
+### 3. Environment Configuration
+```bash
 cp .env.example .env
 ```
 
-### 2. Edit Environment Variables
+Edit `.env` with your credentials:
 ```bash
-# Edit .env file with your credentials
-nano .env
-
-# Required variables:
-DISCORD_TOKEN_GROK4=your_bot_token
-XAI_API_KEY=your_grok_api_key
-ANTHROPIC_API_KEY=your_claude_api_key
-GOOGLE_AI_API_KEY=your_gemini_api_key
+# Discord Configuration
+DISCORD_TOKEN_GROK4=your_discord_bot_token_here
 DEFAULT_SERVER_ID=your_discord_server_id
+
+# AI API Keys
+XAI_API_KEY=your_grok4_api_key_here
+
+# Database Configuration (use defaults)
+POSTGRES_USER=superagent
+POSTGRES_PASSWORD=superagent-db-2025
+POSTGRES_DB=superagent
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5436
 ```
 
-### 3. Start Services
+## Infrastructure Deployment
+
+### 1. Start Docker Stack
 ```bash
-# Start all services
 docker-compose -f docker/docker-compose.yml up -d
-
-# Check status
-docker-compose -f docker/docker-compose.yml ps
 ```
 
-### 4. Access n8n Interface
-- Open: http://localhost:5678
-- Login: admin / (your N8N_BASIC_AUTH_PASSWORD)
+This starts:
+- n8n workflow server (port 5678)
+- PostgreSQL database (port 5436)
+- Redis cache (port 6379)
 
-### 5. Import Workflows
-1. Go to n8n interface
-2. Click "Import from file"
-3. Import `workflows/*.json` files
-4. Configure webhook URLs in Discord
-
-## 📋 Detailed Setup
-
-### Discord Bot Setup
-
-#### 1. Create Discord Applications
-1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create 3 applications: Grok4Agent, ClaudeAgent, GeminiAgent
-3. For each application:
-   - Go to "Bot" section
-   - Create bot
-   - Copy bot token
-   - Enable "Message Content Intent"
-   - Enable "Server Members Intent"
-
-#### 2. Bot Permissions
-Required permissions for each bot:
-- Send Messages
-- Read Message History
-- Use Slash Commands
-- Add Reactions
-- Manage Messages (optional)
-- Read Messages/View Channels
-
-Invite URL template:
-```
-https://discord.com/api/oauth2/authorize?client_id=YOUR_BOT_ID&permissions=274877975552&scope=bot
-```
-
-### n8n Workflow Configuration
-
-#### 1. Import Base Workflows
-Import these workflows in order:
-1. `workflows/discord-bot-base.json` - Main message handler
-2. `workflows/memory-postgres.json` - Memory management
-3. `workflows/agents/agent-grok4.json` - Grok4 processing
-4. `workflows/agents/agent-claude.json` - Claude processing
-5. `workflows/agents/agent-gemini.json` - Gemini processing
-
-#### 2. Configure Webhooks
-1. In n8n, activate the "Discord Bot Base" workflow
-2. Copy the webhook URL (will be like: `http://localhost:5678/webhook/discord`)
-3. Configure Discord webhook for your server:
-   - Server Settings → Integrations → Webhooks
-   - Create webhook for #general channel
-   - Set webhook URL to your n8n webhook
-
-#### 3. Test Workflows
-1. Send test message: `@Grok4Agent hello`
-2. Check n8n execution logs
-3. Verify bot response in Discord
-
-### Database Setup
-
-#### PostgreSQL Configuration
-The database is automatically initialized via Docker with:
-- User management tables
-- Conversation tracking
-- Message history
-- Entity extraction
-- Workflow logs
-
-#### Redis Configuration
-Redis is used for:
-- Session caching
-- Rate limiting
-- Temporary storage
-- Workflow coordination
-
-### LLM API Configuration
-
-#### Grok4 (X.AI)
+### 2. Verify Services
 ```bash
-XAI_API_KEY=your_xai_api_key
-# Base URL: https://api.x.ai/v1
-# Model: grok-4-latest
+docker ps
+# Should show: superagent-n8n, postgres, redis containers
+
+curl http://localhost:5678
+# Should return n8n interface
 ```
 
-#### Claude (Anthropic)
+## n8n Configuration
+
+### 1. Access n8n Interface
+Open http://localhost:5678 in your browser
+
+### 2. First-time Setup
+- Create admin account
+- Skip onboarding tutorials
+
+### 3. Configure PostgreSQL Credentials
+1. Go to **Settings** → **Credentials**
+2. Add new **PostgreSQL** credential
+3. Name: `SuperAgent PostgreSQL`
+4. Host: `postgres`
+5. Database: `superagent`
+6. User: `superagent`
+7. Password: `superagent-db-2025`
+8. Port: `5432`
+
+### 4. Import Workflow
+1. Click **Import from file**
+2. Select `workflows/discord-grok4-python-api.json`
+3. Click **Import**
+
+### 5. Activate Workflow
+1. Open the imported workflow
+2. Toggle switch to **Active**
+3. Verify webhook URL shows as active
+
+## Service Deployment
+
+### 1. Start API Server
 ```bash
-ANTHROPIC_API_KEY=your_anthropic_key
-# Model: claude-3-sonnet-20240229
+# Terminal 1
+source .venv/bin/activate
+python discord_api_server.py
 ```
 
-#### Gemini (Google)
+Expected output:
+```
+Starting Discord API Server...
+✅ Grok4 API configured
+✅ Discord token configured
+Database: localhost:5436/superagent
+* Running on http://127.0.0.1:5001
+```
+
+### 2. Start Discord Bot
 ```bash
-GOOGLE_AI_API_KEY=your_google_ai_key
-# Model: gemini-2.0-flash
+# Terminal 2
+source .venv/bin/activate
+python discord_forwarder.py
 ```
 
-## 🔧 Advanced Configuration
+Expected output:
+```
+Logged in as YourBot#1234 (ID: 123456789)
+Forwarding messages to: http://localhost:5678/webhook/grok4-python-api
+```
 
-### Environment Variables Reference
+## Testing
 
-#### Discord Configuration
+### 1. Basic Test
+In Discord channel where bot has access:
+```
+@YourBot hello there!
+```
+
+### 2. Memory Test
+```
+@YourBot my name is John
+@YourBot what's my name?
+```
+
+Bot should remember "John" from the previous message.
+
+### 3. Database Verification
 ```bash
-DISCORD_TOKEN_GROK4=          # Grok4 bot token
-DISCORD_TOKEN_CLAUDE=         # Claude bot token
-DISCORD_TOKEN_GEMINI=         # Gemini bot token
-DEFAULT_SERVER_ID=            # Discord server ID
-GENERAL_CHANNEL_ID=           # General channel ID
+python check_database.py
 ```
 
-#### Database Configuration
+Should show users and message history.
+
+## Monitoring
+
+### Health Checks
 ```bash
-POSTGRES_HOST=localhost       # PostgreSQL host
-POSTGRES_PORT=5432           # PostgreSQL port
-POSTGRES_DB=superagent_n8n   # Database name
-POSTGRES_USER=superagent     # Database user
-POSTGRES_PASSWORD=           # Database password
+# API Server
+curl http://localhost:5001/health
 
-REDIS_HOST=localhost         # Redis host
-REDIS_PORT=6379             # Redis port
-REDIS_PASSWORD=             # Redis password
+# n8n
+curl http://localhost:5678
+
+# Database
+python check_database.py
 ```
 
-#### n8n Configuration
+### Logs
+- **API Server**: Terminal 1 output
+- **Discord Bot**: Terminal 2 output  
+- **n8n**: `docker logs superagent-n8n`
+- **Database**: `docker logs superagent-n8n-postgres-1`
+
+## Troubleshooting
+
+### Bot Not Responding
+1. Check Discord bot logs for connection errors
+2. Verify n8n workflow is active
+3. Test API server: `curl http://localhost:5001/health`
+4. Check database connection: `python check_database.py`
+
+### n8n Connection Issues
+1. Ensure Docker containers are running: `docker ps`
+2. Check n8n logs: `docker logs superagent-n8n`
+3. Verify port 5678 is accessible
+
+### Database Issues
+1. Check PostgreSQL container: `docker ps | grep postgres`
+2. Verify database schema: `python check_database.py`
+3. Check connection in n8n credentials
+
+### Memory Not Working
+1. Verify PostgreSQL credentials in n8n
+2. Check database for stored messages: `python check_database.py`
+3. Look for database errors in API server logs
+
+## Production Deployment
+
+### Process Management
 ```bash
-N8N_HOST=localhost          # n8n host
-N8N_PORT=5678              # n8n port
-N8N_BASIC_AUTH_USER=admin  # n8n admin user
-N8N_BASIC_AUTH_PASSWORD=   # n8n admin password
-N8N_ENCRYPTION_KEY=        # 32-character encryption key
+# Install PM2
+npm install -g pm2
+
+# Start services
+pm2 start discord_api_server.py --interpreter python3 --name discord-api
+pm2 start discord_forwarder.py --interpreter python3 --name discord-bot
+
+# Save configuration
+pm2 save
+pm2 startup
 ```
 
-### Monitoring & Logging
-
-#### Health Checks
-- n8n: http://localhost:5678/healthz
-- Health service: http://localhost:8080
-- PostgreSQL: `docker exec superagent-postgres pg_isready`
-- Redis: `docker exec superagent-redis redis-cli ping`
-
-#### Logs
+### WSGI Server
 ```bash
-# View all logs
-docker-compose -f docker/docker-compose.yml logs -f
+# Install Gunicorn
+pip install gunicorn
 
-# View specific service logs
-docker-compose -f docker/docker-compose.yml logs -f n8n
-docker-compose -f docker/docker-compose.yml logs -f postgres
-docker-compose -f docker/docker-compose.yml logs -f redis
+# Run API server with Gunicorn
+gunicorn -w 4 -b 0.0.0.0:5001 discord_api_server:app
 ```
 
-#### Metrics
-- Workflow executions: Check n8n interface
-- Database queries: PostgreSQL logs
-- Cache performance: Redis INFO command
+### SSL/HTTPS
+Configure reverse proxy (nginx/Apache) for external webhook access.
 
-## 🐛 Troubleshooting
+### Monitoring
+Set up logging, metrics, and health check monitoring for production use.
 
-### Common Issues
+## Next Steps
 
-#### Bot Not Responding
-1. Check Discord webhook configuration
-2. Verify bot tokens in .env
-3. Check n8n workflow execution logs
-4. Ensure bot has correct permissions
+Once the basic system is working:
+1. **File Upload Support** - Handle Discord attachments
+2. **RAG Integration** - Add document retrieval
+3. **Multi-Agent Routing** - Add Claude, Gemini
+4. **Web Dashboard** - Management interface
+5. **Analytics** - Usage metrics and insights
 
-#### Database Connection Errors
-1. Verify PostgreSQL is running: `docker ps`
-2. Check connection settings in .env
-3. Test connection: `docker exec superagent-postgres pg_isready`
-
-#### n8n Workflow Errors
-1. Check workflow logs in n8n interface
-2. Verify API keys are configured
-3. Test individual nodes in workflows
-4. Check network connectivity to APIs
-
-#### Memory Issues
-1. Check PostgreSQL logs for errors
-2. Verify Redis connectivity
-3. Monitor memory usage: `docker stats`
-
-### Performance Tuning
-
-#### Database Optimization
-```sql
--- Create additional indexes for performance
-CREATE INDEX CONCURRENTLY idx_messages_recent 
-ON messages(created_at DESC) WHERE created_at > NOW() - INTERVAL '7 days';
-
--- Analyze query performance
-EXPLAIN ANALYZE SELECT * FROM messages WHERE conversation_id = 'uuid';
-```
-
-#### Redis Optimization
-```bash
-# Monitor Redis performance
-redis-cli --latency-history
-redis-cli INFO memory
-```
-
-#### n8n Optimization
-- Increase `EXECUTIONS_TIMEOUT` for long-running workflows
-- Adjust `N8N_PAYLOAD_SIZE_MAX` for large responses
-- Monitor execution queue length
-
-## 🔒 Security Checklist
-
-- [ ] Change default n8n admin password
-- [ ] Use strong PostgreSQL password
-- [ ] Configure Redis password
-- [ ] Limit Discord bot permissions
-- [ ] Enable rate limiting
-- [ ] Regular security updates
-- [ ] Monitor access logs
-- [ ] Backup encryption keys
-
-## 🚀 Production Deployment
-
-### Docker Swarm / Kubernetes
-- Use orchestration for high availability
-- Implement service discovery
-- Configure load balancing
-- Set up monitoring and alerting
-
-### Backup Strategy
-```bash
-# Database backup
-docker exec superagent-postgres pg_dump -U superagent superagent_n8n > backup.sql
-
-# n8n workflows backup
-docker cp superagent-n8n:/home/node/.n8n ./n8n-backup
-```
-
-### Scaling
-- Horizontal scaling: Multiple n8n instances
-- Database scaling: Read replicas
-- Cache scaling: Redis cluster
-- Load balancing: nginx/traefik
-
----
-
-**Need Help?** Check the troubleshooting section or create an issue in the repository.
+Your SuperAgent n8n Discord bot is now ready for operation! 🚀
