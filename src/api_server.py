@@ -24,13 +24,15 @@ import redis
 import openai
 from anthropic import Anthropic
 import requests
+import discord
+from discord.ext import commands
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('/app/logs/api_server.log'),
+        logging.FileHandler('./logs/api_server.log'),
         logging.StreamHandler()
     ]
 )
@@ -84,7 +86,7 @@ class AIProviderManager:
             self.providers['xai'] = self._call_xai
             logger.info("✅ X.AI provider initialized")
     
-    async def get_response(self, provider: str, model: str, messages: List[Dict], personality: str) -> str:
+    async def get_response(self, provider: str, model: str, messages: List[Dict], personality: str, tools: List[Dict] = None) -> str:
         """Get response from specified AI provider"""
         try:
             if provider == 'openai':
@@ -92,7 +94,7 @@ class AIProviderManager:
             elif provider == 'anthropic':
                 return await self._call_anthropic(model, messages, personality)
             elif provider == 'xai':
-                return await self._call_xai(model, messages, personality)
+                return await self._call_xai(model, messages, personality, tools)
             else:
                 return f"❌ Unknown AI provider: {provider}"
         except Exception as e:
@@ -138,11 +140,26 @@ class AIProviderManager:
             logger.error(f"Anthropic API error: {e}")
             raise
     
-    async def _call_xai(self, model: str, messages: List[Dict], personality: str) -> str:
-        """Call X.AI/Grok API"""
+    async def _call_xai(self, model: str, messages: List[Dict], personality: str, tools: List[Dict] = None) -> str:
+        """Call X.AI/Grok API with optional function calling"""
         try:
             # Add personality as system message
             full_messages = [{"role": "system", "content": personality}] + messages
+            
+            # Build request payload
+            payload = {
+                "messages": full_messages,
+                "model": model,
+                "stream": False,
+                "temperature": 0.7,
+                "max_tokens": 1500
+            }
+            
+            # Add tools if provided
+            if tools:
+                payload["tools"] = tools
+                payload["tool_choice"] = "auto"
+                logger.info(f"🔧 XAI payload includes {len(tools)} tools with tool_choice=auto")
             
             response = requests.post(
                 "https://api.x.ai/v1/chat/completions",
@@ -150,19 +167,24 @@ class AIProviderManager:
                     "Authorization": f"Bearer {os.getenv('XAI_API_KEY')}",
                     "Content-Type": "application/json"
                 },
-                json={
-                    "messages": full_messages,
-                    "model": model,
-                    "stream": False,
-                    "temperature": 0.7,
-                    "max_tokens": 1500
-                },
+                json=payload,
                 timeout=30
             )
             
             if response.status_code == 200:
                 result = response.json()
-                return result['choices'][0]['message']['content'].strip()
+                message = result['choices'][0]['message']
+                
+                # Check if there are tool calls
+                if message.get('tool_calls'):
+                    logger.info(f"🔧 XAI returned {len(message['tool_calls'])} tool calls")
+                    return {
+                        "content": message.get('content', ''),
+                        "tool_calls": message['tool_calls']
+                    }
+                else:
+                    logger.info("🔧 XAI returned text response, no tool calls")
+                    return message.get('content', '').strip()
             else:
                 logger.error(f"X.AI API error: {response.status_code} - {response.text}")
                 raise Exception(f"X.AI API returned {response.status_code}")
@@ -239,15 +261,201 @@ class DatabaseManager:
 def load_bot_configs() -> Dict[str, Any]:
     """Load bot configurations from YAML"""
     try:
-        with open('/app/config/bots.yaml', 'r') as f:
+        with open('./config/bots.yaml', 'r') as f:
             return yaml.safe_load(f)
     except Exception as e:
         logger.error(f"Failed to load bot config: {e}")
         return {'bots': {}}
 
+class DiscordToolsManager:
+    """Provides Discord interaction capabilities for AI agents"""
+    
+    def __init__(self):
+        self.bot = None
+        self.discord_token = os.getenv('DISCORD_TOKEN_GROK4')
+        if self.discord_token:
+            self.setup_bot()
+    
+    def setup_bot(self):
+        """Initialize Discord bot for tools"""
+        intents = discord.Intents.default()
+        intents.message_content = True
+        intents.members = True
+        intents.guilds = True
+        
+        self.bot = commands.Bot(command_prefix='!tools_', intents=intents)
+        
+        @self.bot.event
+        async def on_ready():
+            logger.info(f"🔧 Discord Tools bot ready: {self.bot.user}")
+    
+    async def get_server_info(self, guild_id: str = None):
+        """Get Discord server information"""
+        if not self.bot or not self.bot.is_ready():
+            return {"error": "Discord tools not available"}
+        
+        try:
+            if guild_id:
+                guild = self.bot.get_guild(int(guild_id))
+            else:
+                guild = self.bot.guilds[0] if self.bot.guilds else None
+            
+            if not guild:
+                return {"error": "Server not found"}
+            
+            return {
+                "success": True,
+                "server": {
+                    "name": guild.name,
+                    "id": str(guild.id),
+                    "member_count": guild.member_count,
+                    "channel_count": len(guild.channels),
+                    "created_at": guild.created_at.isoformat()
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error getting server info: {e}")
+            return {"error": str(e)}
+    
+    async def list_channels(self, guild_id: str = None):
+        """List channels in Discord server"""
+        if not self.bot or not self.bot.is_ready():
+            return {"error": "Discord tools not available"}
+        
+        try:
+            if guild_id:
+                guild = self.bot.get_guild(int(guild_id))
+            else:
+                guild = self.bot.guilds[0] if self.bot.guilds else None
+            
+            if not guild:
+                return {"error": "Server not found"}
+            
+            channels = []
+            for channel in guild.channels:
+                channels.append({
+                    "id": str(channel.id),
+                    "name": channel.name,
+                    "type": str(channel.type),
+                    "category": channel.category.name if channel.category else None,
+                    "position": channel.position
+                })
+            
+            return {
+                "success": True,
+                "channels": channels,
+                "count": len(channels)
+            }
+        except Exception as e:
+            logger.error(f"Error listing channels: {e}")
+            return {"error": str(e)}
+    
+    async def get_channel_info(self, channel_id: str):
+        """Get information about a specific channel"""
+        if not self.bot or not self.bot.is_ready():
+            return {"error": "Discord tools not available"}
+        
+        try:
+            channel = self.bot.get_channel(int(channel_id))
+            if not channel:
+                return {"error": "Channel not found"}
+            
+            info = {
+                "id": str(channel.id),
+                "name": channel.name,
+                "type": str(channel.type),
+                "guild": channel.guild.name,
+                "category": channel.category.name if channel.category else None,
+                "position": channel.position,
+                "created_at": channel.created_at.isoformat()
+            }
+            
+            if hasattr(channel, 'topic') and channel.topic:
+                info["topic"] = channel.topic
+            
+            return {
+                "success": True,
+                "channel": info
+            }
+        except Exception as e:
+            logger.error(f"Error getting channel info: {e}")
+            return {"error": str(e)}
+
 # Initialize managers
 ai_manager = AIProviderManager()
 db_manager = DatabaseManager()
+discord_tools = DiscordToolsManager()
+
+# Start Discord tools bot if available
+async def start_discord_tools():
+    """Start Discord tools bot in the background"""
+    if discord_tools.discord_token and discord_tools.bot:
+        try:
+            # Start the bot in the background
+            import threading
+            def run_bot():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(discord_tools.bot.start(discord_tools.discord_token))
+            
+            bot_thread = threading.Thread(target=run_bot, daemon=True)
+            bot_thread.start()
+            logger.info("🚀 Discord tools bot starting in background...")
+        except Exception as e:
+            logger.error(f"Failed to start Discord tools bot: {e}")
+
+# Start Discord tools on import
+try:
+    asyncio.run(start_discord_tools())
+except Exception as e:
+    logger.warning(f"Discord tools initialization warning: {e}")
+
+async def enhance_personality_with_tools(personality: str, webhook_data: Dict) -> str:
+    """Enhance AI personality with available Discord tools information"""
+    
+    # Check if Discord tools are available
+    tools_available = discord_tools.discord_token is not None
+    
+    if not tools_available:
+        return personality
+    
+    # Get current server information
+    try:
+        server_info = await discord_tools.get_server_info()
+        channels_info = await discord_tools.list_channels()
+        
+        if server_info.get('success') and channels_info.get('success'):
+            server_data = server_info['server']
+            channels_data = channels_info['channels'][:10]  # First 10 channels
+            
+            tools_context = f"""
+
+🔧 **DISCORD TOOLS AVAILABLE** - You have access to live Discord server information:
+
+**Current Server**: {server_data['name']} (ID: {server_data['id']})
+- Members: {server_data['member_count']}
+- Channels: {server_data['channel_count']} total
+
+**Available Channels** (showing first 10):
+"""
+            for ch in channels_data:
+                tools_context += f"- #{ch['name']} ({ch['type']}) - ID: {ch['id']}\n"
+            
+            tools_context += f"""
+**Your Discord Capabilities**:
+- ✅ View server information (name, member count, channels)
+- ✅ List all channels and their types
+- ✅ Get detailed channel information
+- ✅ Access current server context: "{server_data['name']}"
+
+When users ask about "this server", "current channels", or "browse channels", you can provide specific information about the {server_data['name']} Discord server you're currently connected to.
+"""
+            
+            return personality + tools_context
+    except Exception as e:
+        logger.error(f"Error enhancing personality with tools: {e}")
+    
+    return personality
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -336,20 +544,38 @@ def process_discord_message():
         if not bot_config:
             return jsonify({'error': f'Bot configuration not found: {bot_display_name}'}), 404
         
-        # Get conversation history
-        max_context = bot_config.get('max_context_messages', 10)
-        history = db_manager.get_conversation_history(
-            webhook_data['bot_name'],
-            webhook_data['channel_id'],
-            webhook_data['user_id'],
-            max_context
-        )
+        # Get conversation history (use provided history if available from MCP bot)
+        if 'conversation_history' in webhook_data:
+            history = webhook_data['conversation_history']
+            logger.info(f"Using MCP bot conversation history: {len(history)} messages")
+        else:
+            max_context = bot_config.get('max_context_messages', 10)
+            history = db_manager.get_conversation_history(
+                webhook_data['bot_name'],
+                webhook_data['channel_id'],
+                webhook_data['user_id'],
+                max_context
+            )
         
-        # Add current message to history
-        current_message = {
-            'role': 'user',
-            'content': webhook_data['message_content']
-        }
+        # Handle tool results from follow-up requests
+        if webhook_data.get('follow_up_request') and 'tool_results' in webhook_data:
+            # This is a follow-up request with tool results
+            tool_results = webhook_data['tool_results']
+            logger.info(f"🔧 Processing follow-up request with {len(tool_results)} tool results")
+            tool_context = "Tool execution results:\n"
+            for tool_result in tool_results:
+                tool_context += f"- {tool_result['tool_name']}: {json.dumps(tool_result['result'], indent=2)}\n"
+            
+            current_message = {
+                'role': 'user', 
+                'content': f"{tool_context}\n\nUser's original question: {webhook_data.get('original_message', webhook_data['message_content'])}\n\nPlease provide a natural, helpful response based on the tool results above."
+            }
+        else:
+            # Regular message
+            current_message = {
+                'role': 'user',
+                'content': webhook_data['message_content']
+            }
         
         # Prepare messages for AI
         messages = history + [current_message]
@@ -359,32 +585,162 @@ def process_discord_message():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
+            # Enhance personality with Discord tools information
+            base_personality = bot_config.get('personality', 'You are a helpful AI assistant.')
+            enhanced_personality = loop.run_until_complete(
+                enhance_personality_with_tools(base_personality, webhook_data)
+            )
+            
+            # Define Discord tools for function calling if MCP tools are available
+            # Don't provide tools for follow-up requests (we already have tool results)
+            tools = None
+            if 'tools_available' in webhook_data and not webhook_data.get('follow_up_request'):
+                logger.info(f"🔧 Tools available from MCP bot: {webhook_data['tools_available']}")
+                tools = [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "list_channels",
+                            "description": "List all channels available in the Discord server",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "guild_id": {
+                                        "type": "string",
+                                        "description": "The Discord server/guild ID (optional)"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "type": "function", 
+                        "function": {
+                            "name": "get_server_info",
+                            "description": "Get information about the current Discord server",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "guild_id": {
+                                        "type": "string",
+                                        "description": "The Discord server/guild ID (optional)"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "get_channel_history", 
+                            "description": "Get recent messages from a specific Discord channel",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "channel_id": {
+                                        "type": "string",
+                                        "description": "The Discord channel ID to get messages from"
+                                    },
+                                    "limit": {
+                                        "type": "integer",
+                                        "description": "Number of messages to retrieve (default 10)"
+                                    }
+                                },
+                                "required": ["channel_id"]
+                            }
+                        }
+                    },
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "get_online_users",
+                            "description": "Get list of currently online users in the Discord server",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "guild_id": {
+                                        "type": "string", 
+                                        "description": "The Discord server/guild ID (optional)"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "search_messages",
+                            "description": "Search for messages containing specific text",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "The text to search for in messages"
+                                    },
+                                    "channel_id": {
+                                        "type": "string",
+                                        "description": "Limit search to specific channel (optional)"
+                                    },
+                                    "limit": {
+                                        "type": "integer",
+                                        "description": "Maximum number of results (default 20)"
+                                    }
+                                },
+                                "required": ["query"]
+                            }
+                        }
+                    }
+                ]
+                logger.info(f"🔧 Sending {len(tools)} tools to XAI API")
+            else:
+                logger.info("❌ No tools_available in webhook_data - tools will be None")
+            
             ai_response = loop.run_until_complete(ai_manager.get_response(
                 provider=bot_config['llm_provider'],
                 model=bot_config['llm_model'],
                 messages=messages,
-                personality=bot_config.get('personality', 'You are a helpful AI assistant.')
+                personality=enhanced_personality,
+                tools=tools
             ))
         finally:
             loop.close()
         
-        # Store AI response
-        response_data = webhook_data.copy()
-        response_data.update({
-            'message_content': ai_response,
-            'username': webhook_data['bot_name'],
-            'user_id': 'bot',
-            'timestamp': datetime.utcnow().isoformat()
-        })
-        db_manager.store_message(response_data)
+        # Handle function calls if present
+        if isinstance(ai_response, dict) and 'tool_calls' in ai_response:
+            # Extract tool calls for the Discord bot to handle
+            logger.info(f"🔧 AI requested tool calls: {len(ai_response['tool_calls'])}")
+            return jsonify({
+                'success': True,
+                'response': ai_response.get('content', 'Let me check that for you...'),
+                'tool_calls': [
+                    {
+                        'tool': call['function']['name'],
+                        'arguments': call['function'].get('arguments', {})
+                    }
+                    for call in ai_response['tool_calls']
+                ],
+                'bot_name': webhook_data['bot_name']
+            })
+        else:
+            # Store AI response for regular text responses
+            response_content = ai_response if isinstance(ai_response, str) else str(ai_response)
+            response_data = webhook_data.copy()
+            response_data.update({
+                'message_content': response_content,
+                'username': webhook_data['bot_name'],
+                'user_id': None,  # Bot responses don't need user_id
+                'timestamp': datetime.utcnow().isoformat()
+            })
+            db_manager.store_message(response_data)
         
-        logger.info(f"✅ Generated response for {webhook_data.get('username')}")
+            logger.info(f"✅ Generated response for {webhook_data.get('username')}")
         
-        return jsonify({
-            'success': True,
-            'response': ai_response,
-            'bot_name': webhook_data['bot_name']
-        })
+            return jsonify({
+                'success': True,
+                'response': response_content,
+                'bot_name': webhook_data['bot_name']
+            })
         
     except Exception as e:
         logger.error(f"💥 Error processing message: {e}")

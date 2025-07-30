@@ -22,7 +22,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('/app/logs/discord_bot.log'),
+        logging.FileHandler('./logs/discord_bot.log'),
         logging.StreamHandler()
     ]
 )
@@ -164,7 +164,7 @@ class BotForgeBot(commands.Bot):
 def load_bot_config(bot_id: str) -> Optional[Dict[str, Any]]:
     """Load bot configuration from YAML file"""
     try:
-        with open('/app/config/bots.yaml', 'r') as f:
+        with open('./config/bots.yaml', 'r') as f:
             config = yaml.safe_load(f)
             return config['bots'].get(bot_id)
     except Exception as e:
@@ -188,7 +188,7 @@ async def main():
         logger.error(f"❌ No configuration found for bot: {bot_name}")
         # List available configs for debugging
         try:
-            with open('/app/config/bots.yaml', 'r') as f:
+            with open('./config/bots.yaml', 'r') as f:
                 config = yaml.safe_load(f)
                 logger.error(f"Available bot configs: {list(config.get('bots', {}).keys())}")
         except Exception as e:

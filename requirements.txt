@@ -11,6 +11,7 @@ gunicorn==21.2.0
 
 # Database
 psycopg2-binary==2.9.9
+asyncpg==0.29.0
 redis==5.0.1
 
 # AI Providers
@@ -18,12 +19,25 @@ openai==1.6.1
 anthropic==0.8.1
 requests==2.31.0
 
+# Vector Storage & RAG with PostgreSQL
+pgvector==0.2.5
+psycopg2-binary==2.9.9
+sentence-transformers>=2.3.0
+langchain==0.1.0
+tiktoken==0.5.2
+numpy==1.24.3
+
+# File Operations
+aiofiles==23.2.0
+python-magic==0.4.27
+
 # Configuration
 PyYAML==6.0.1
 
 # Utilities  
 python-dotenv==1.0.0
 asyncio-throttle==1.0.2
+websockets==12.0
 
 # Development/Testing
 pytest==7.4.3

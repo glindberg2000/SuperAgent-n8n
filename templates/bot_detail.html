@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ bot_config.name }} - Bot Configuration</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 2rem; font-weight: 300; }
+        .nav-links {
+            margin-top: 1rem;
+        }
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .nav-links a:hover { background: rgba(255,255,255,0.1); }
+        .container { 
+            max-width: 1200px; 
+            margin: 2rem auto; 
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        .config-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .section-header {
+            background: #f8f9fa;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #eee;
+            font-weight: 600;
+        }
+        .section-content {
+            padding: 1.5rem;
+        }
+        .config-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .config-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .config-label {
+            font-weight: 500;
+            color: #666;
+        }
+        .config-value {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: #f8f9fa;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .status-enabled { background: #d4edda; color: #155724; }
+        .status-disabled { background: #f8d7da; color: #721c24; }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-left: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn:hover { opacity: 0.9; }
+        .messages-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .message-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .message-meta {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 0.25rem;
+        }
+        .message-content {
+            background: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        input[type="text"], input[type="number"], textarea, select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+        }
+        .form-section {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            background: #fdfdfd;
+        }
+        .form-section legend {
+            padding: 0 0.5rem;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 {{ bot_config.name }} Configuration</h1>
+        <div class="nav-links">
+            <a href="/">← Dashboard</a>
+            <a href="/logs">Logs</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Bot Configuration -->
+        <div class="config-section">
+            <div class="section-header">
+                Bot Configuration
+            </div>
+            <div class="section-content">
+                <div class="config-row">
+                    <span class="config-label">Status:</span>
+                    <span class="status-badge {{ 'status-enabled' if bot_config.enabled else 'status-disabled' }}">
+                        {{ 'Enabled' if bot_config.enabled else 'Disabled' }}
+                    </span>
+                </div>
+                <div class="config-row">
+                    <span class="config-label">LLM Provider:</span>
+                    <span class="config-value">{{ bot_config.llm_provider|upper }}</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-label">Model:</span>
+                    <span class="config-value">{{ bot_config.llm_model }}</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-label">Max Context:</span>
+                    <span class="config-value">{{ bot_config.max_context_messages }} messages</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-label">Response Delay:</span>
+                    <span class="config-value">{{ bot_config.response_delay }}s</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-label">Trigger Words:</span>
+                    <span class="config-value">{{ bot_config.trigger_words|join(', ') if bot_config.trigger_words else 'None' }}</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-label">Discord Token:</span>
+                    <span class="config-value">{{ env_values.get(bot_config.discord_token_env, 'Not set') if bot_config.discord_token_env else 'Not configured' }}</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-label">API Key:</span>
+                    <span class="config-value">{{ env_values.get(bot_config.api_key_env, 'Not set') if bot_config.api_key_env else 'Not configured' }}</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-label">Token Env Var:</span>
+                    <span class="config-value">{{ bot_config.discord_token_env if bot_config.discord_token_env else 'Not configured' }}</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-label">API Key Env Var:</span>
+                    <span class="config-value">{{ bot_config.api_key_env if bot_config.api_key_env else 'Not configured' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bot Actions -->
+        <div class="config-section">
+            <div class="section-header">
+                Actions
+            </div>
+            <div class="section-content">
+                <button class="btn {{ 'btn-danger' if bot_config.enabled else 'btn-success' }}" 
+                        onclick="toggleBot('{{ bot_id }}')">
+                    {{ 'Disable Bot' if bot_config.enabled else 'Enable Bot' }}
+                </button>
+                <button class="btn btn-primary" onclick="showEditForm()">
+                    Edit Configuration
+                </button>
+            </div>
+        </div>
+
+        <!-- Edit Configuration Form (Hidden by default) -->
+        <div class="config-section full-width" id="edit-form" style="display: none;">
+            <div class="section-header">
+                Edit Configuration
+            </div>
+            <div class="section-content">
+                <form onsubmit="updateBot(event, '{{ bot_id }}')">
+                    <!-- Basic Settings -->
+                    <fieldset class="form-section">
+                        <legend>Basic Settings</legend>
+                        <div class="form-group">
+                            <label class="form-label">Bot Name:</label>
+                            <input type="text" name="name" value="{{ bot_config.name }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Personality:</label>
+                            <textarea name="personality" rows="4">{{ bot_config.personality }}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Trigger Words (comma-separated):</label>
+                            <input type="text" name="trigger_words" value="{{ bot_config.trigger_words|join(', ') if bot_config.trigger_words else '' }}">
+                        </div>
+                    </fieldset>
+
+                    <!-- LLM Configuration -->
+                    <fieldset class="form-section">
+                        <legend>LLM Configuration</legend>
+                        <div class="form-group">
+                            <label class="form-label">LLM Provider:</label>
+                            <select name="llm_provider">
+                                <option value="xai" {{ 'selected' if bot_config.llm_provider == 'xai' else '' }}>X.AI (Grok)</option>
+                                <option value="openai" {{ 'selected' if bot_config.llm_provider == 'openai' else '' }}>OpenAI (GPT)</option>
+                                <option value="anthropic" {{ 'selected' if bot_config.llm_provider == 'anthropic' else '' }}>Anthropic (Claude)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Model:</label>
+                            <input type="text" name="llm_model" value="{{ bot_config.llm_model }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">API Key:</label>
+                            <input type="password" name="api_key" placeholder="Enter new API key (leave blank to keep current)" autocomplete="new-password">
+                            <small style="color: #666; font-size: 0.8rem;">Environment Variable: {{ bot_config.api_key_env }}</small>
+                        </div>
+                    </fieldset>
+
+                    <!-- Discord Configuration -->
+                    <fieldset class="form-section">
+                        <legend>Discord Configuration</legend>
+                        <div class="form-group">
+                            <label class="form-label">Discord Token:</label>
+                            <input type="password" name="discord_token" placeholder="Enter new Discord token (leave blank to keep current)" autocomplete="new-password">
+                            <small style="color: #666; font-size: 0.8rem;">Environment Variable: {{ bot_config.discord_token_env }}</small>
+                        </div>
+                    </fieldset>
+
+                    <!-- Behavior Settings -->
+                    <fieldset class="form-section">
+                        <legend>Behavior Settings</legend>
+                        <div class="form-group">
+                            <label class="form-label">Max Context Messages:</label>
+                            <input type="number" name="max_context_messages" value="{{ bot_config.max_context_messages }}" min="1" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Response Delay (seconds):</label>
+                            <input type="number" name="response_delay" value="{{ bot_config.response_delay }}" min="0" step="0.1">
+                        </div>
+                    </fieldset>
+
+                    <!-- Advanced Settings -->
+                    <fieldset class="form-section">
+                        <legend>Advanced Settings</legend>
+                        <div class="form-group">
+                            <label class="form-label">Discord Token Environment Variable:</label>
+                            <input type="text" name="discord_token_env" value="{{ bot_config.discord_token_env if bot_config.discord_token_env else '' }}" placeholder="e.g., DISCORD_TOKEN_GROK4">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">API Key Environment Variable:</label>
+                            <input type="text" name="api_key_env" value="{{ bot_config.api_key_env if bot_config.api_key_env else '' }}" placeholder="e.g., XAI_API_KEY">
+                        </div>
+                    </fieldset>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="button" class="btn btn-secondary" onclick="hideEditForm()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Messages -->
+        <div class="config-section full-width">
+            <div class="section-header">
+                Recent Messages ({{ recent_messages|length }})
+            </div>
+            <div class="section-content">
+                <div class="messages-list">
+                    {% if recent_messages %}
+                        {% for message in recent_messages %}
+                        <div class="message-item">
+                            <div class="message-meta">
+                                {{ message.username }} • {{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                            </div>
+                            <div class="message-content">
+                                {{ message.message_content[:500] }}{% if message.message_content|length > 500 %}...{% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="color: #666; text-align: center; padding: 2rem;">No recent messages found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleBot(botId) {
+            fetch(`/api/bot/${botId}/toggle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Network error: ' + error);
+            });
+        }
+
+        function showEditForm() {
+            document.getElementById('edit-form').style.display = 'block';
+            document.getElementById('edit-form').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideEditForm() {
+            document.getElementById('edit-form').style.display = 'none';
+        }
+
+        function updateBot(event, botId) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const data = {};
+            
+            for (let [key, value] of formData.entries()) {
+                if (key === 'trigger_words') {
+                    data[key] = value.split(',').map(s => s.trim()).filter(s => s);
+                } else if (key === 'max_context_messages' || key === 'response_delay') {
+                    data[key] = parseFloat(value);
+                } else if (key === 'discord_token' || key === 'api_key') {
+                    // Only include if value is provided
+                    if (value.trim()) {
+                        data[key] = value.trim();
+                    }
+                } else {
+                    data[key] = value;
+                }
+            }
+            
+            // Show confirmation for sensitive data updates
+            const sensitiveUpdates = [];
+            if (data.discord_token) sensitiveUpdates.push('Discord Token');
+            if (data.api_key) sensitiveUpdates.push('API Key');
+            
+            if (sensitiveUpdates.length > 0) {
+                const confirmMsg = `You are about to update sensitive credentials: ${sensitiveUpdates.join(', ')}. Continue?`;
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+            }
+            
+            fetch(`/api/bot/${botId}/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('Configuration updated successfully! Changes will take effect after bot restart.');
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            })
+            .catch(error => {
+                alert('Network error: ' + error);
+            });
+        }
+    </script>
+</body>
+</html>

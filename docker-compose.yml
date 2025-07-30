@@ -1,14 +1,15 @@
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database with pgvector
   postgres:
-    image: postgres:15
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-botforge}
       POSTGRES_USER: ${POSTGRES_USER:-botforge}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-botforge-db-2025}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/extensions.sql:/docker-entrypoint-initdb.d/01-extensions.sql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/02-init.sql
     ports:
       - "5436:5432"
     healthcheck:
@@ -67,15 +68,21 @@ services:
       - ./logs:/app/logs
       - ./config:/app/config:ro
 
-  # Discord Bot - Grok4
+  # Discord Bot - Grok4 with MCP
   discord-bot-grok4:
     build:
       context: .
-      dockerfile: docker/Dockerfile.discord-bot
+      dockerfile: docker/Dockerfile.discord-bot-mcp
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN_GROK4}
       BOT_NAME: "Grok4"
       API_SERVER_URL: http://api-server:5001
+      # Database connection for memory
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-botforge}
+      POSTGRES_USER: ${POSTGRES_USER:-botforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-botforge-db-2025}
     depends_on:
       api-server:
         condition: service_healthy
@@ -100,6 +107,17 @@ services:
       API_SERVER_URL: http://api-server:5001
       # Dashboard Settings
       DASHBOARD_SECRET: ${DASHBOARD_SECRET:-dev-secret-change-in-production}
+      # Discord Tokens
+      DISCORD_TOKEN_GROK4: ${DISCORD_TOKEN_GROK4}
+      DISCORD_TOKEN_CLAUDE: ${DISCORD_TOKEN_CLAUDE}
+      DISCORD_TOKEN_GPT: ${DISCORD_TOKEN_GPT}
+      DISCORD_TOKEN_ARCHITECT: ${DISCORD_TOKEN_ARCHITECT}
+      DISCORD_TOKEN_REVIEWER: ${DISCORD_TOKEN_REVIEWER}
+      DISCORD_TOKEN_O3: ${DISCORD_TOKEN_O3}
+      # API Keys
+      XAI_API_KEY: ${XAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     ports:
       - "3000:3000"
     depends_on:
@@ -114,7 +132,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./logs:/app/logs
-      - ./config:/app/config:ro
+      - ./config:/app/config
 
 volumes:
   postgres_data:

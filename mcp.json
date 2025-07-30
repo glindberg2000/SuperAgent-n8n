@@ -1,0 +1,53 @@
+{
+  "mcpServers": {
+    "discord": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.discord", "--token", "${DISCORD_TOKEN}"],
+      "env": {
+        "DISCORD_TOKEN": "${DISCORD_TOKEN}",
+        "DISCORD_SERVER_ID": "${DISCORD_SERVER_ID}"
+      },
+      "description": "Discord interaction tools for channel management, user interaction, and message operations"
+    },
+    "filesystem": {
+      "command": "python", 
+      "args": ["-m", "mcp_servers.filesystem", "--allowed-dirs", "/app/uploads", "/app/data"],
+      "env": {
+        "MAX_FILE_SIZE": "25MB",
+        "ALLOWED_EXTENSIONS": ".py,.js,.ts,.md,.txt,.json,.yaml,.yml,.sql,.sh"
+      },
+      "description": "File system operations for reading, writing, and analyzing code files"
+    },
+    "postgres": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.postgres"],
+      "env": {
+        "POSTGRES_HOST": "${POSTGRES_HOST}",
+        "POSTGRES_PORT": "${POSTGRES_PORT}",
+        "POSTGRES_DB": "${POSTGRES_DB}",
+        "POSTGRES_USER": "${POSTGRES_USER}",
+        "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD}"
+      },
+      "description": "PostgreSQL database operations including vector search and memory management"
+    },
+    "web": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.web"],
+      "env": {
+        "USER_AGENT": "BotForge/1.0"
+      },
+      "description": "Web browsing and content fetching capabilities"
+    },
+    "code_analysis": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.code_analysis"],
+      "env": {
+        "SUPPORTED_LANGUAGES": "python,javascript,typescript,sql,bash,yaml,json"
+      },
+      "description": "Code analysis, linting, and quality assessment tools"
+    }
+  },
+  "defaultTimeout": 30000,
+  "retryAttempts": 3,
+  "logLevel": "INFO"
+}

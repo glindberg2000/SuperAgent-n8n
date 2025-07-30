@@ -57,7 +57,7 @@ class DashboardManager:
     def load_bot_configs(self) -> Dict[str, Any]:
         """Load bot configurations from YAML"""
         try:
-            with open('/app/config/bots.yaml', 'r') as f:
+            with open('./config/bots.yaml', 'r') as f:
                 return yaml.safe_load(f)
         except Exception as e:
             logger.error(f"Failed to load bot config: {e}")
@@ -66,7 +66,7 @@ class DashboardManager:
     def save_bot_configs(self, config_data: Dict[str, Any]) -> bool:
         """Save bot configurations to YAML"""
         try:
-            with open('/app/config/bots.yaml', 'w') as f:
+            with open('./config/bots.yaml', 'w') as f:
                 yaml.dump(config_data, f, default_flow_style=False, indent=2)
             return True
         except Exception as e:
