@@ -16,7 +16,7 @@ load_dotenv()
 
 # Configuration
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN_GROK4')
-API_SERVER_URL = os.getenv('API_SERVER_URL', 'http://api-server:5001')  # Direct API server call
+N8N_WEBHOOK_URL = "http://localhost:5678/webhook/grok4-python-api"  # Simple n8n → Python API architecture
 BOT_ID = "1396750004588253205"  # Grok4 bot ID
 
 # Discord intents
@@ -27,13 +27,10 @@ intents.messages = True
 class DiscordForwarder(discord.Client):
     def __init__(self):
         super().__init__(intents=intents)
-        print(f"[STARTUP] Discord client initialized")
-        print(f"[STARTUP] API_SERVER_URL: {API_SERVER_URL}")
         
     async def on_ready(self):
-        print(f'[READY] Logged in as {self.user} (ID: {self.user.id})')
-        print(f'[READY] Forwarding messages to: {API_SERVER_URL}')
-        print(f'[READY] Connected to {len(self.guilds)} servers')
+        print(f'Logged in as {self.user} (ID: {self.user.id})')
+        print(f'Forwarding messages to: {N8N_WEBHOOK_URL}')
         print('------')
     
     async def on_message(self, message):
@@ -85,10 +82,10 @@ class DiscordForwarder(discord.Client):
         print(f"Forwarding message from {message.author}: {message.content[:50]}...")
         print(f"Debug - Message data: {json.dumps(webhook_data, indent=2)}")
         
-        # Forward to API server
+        # Forward to n8n
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.post(f"{API_SERVER_URL}/process_discord_message", json=webhook_data) as response:
+                async with session.post(N8N_WEBHOOK_URL, json=webhook_data) as response:
                     if response.status == 200:
                         print(f"✅ Message forwarded successfully")
                     else:
@@ -100,13 +97,5 @@ class DiscordForwarder(discord.Client):
 
 # Run the bot
 if __name__ == "__main__":
-    import sys
-    print("[MAIN] Starting Discord bot...", flush=True)
-    print(f"[MAIN] Discord token configured: {'Yes' if DISCORD_TOKEN else 'No'}", flush=True)
-    sys.stdout.flush()
-    
     client = DiscordForwarder()
-    print("[MAIN] Discord client created, starting...", flush=True)
-    sys.stdout.flush()
-    
     client.run(DISCORD_TOKEN)

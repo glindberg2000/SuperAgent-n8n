@@ -1,0 +1,12 @@
+{
+  "id": "test125",
+  "content": "Hello Grok4! What is the capital of France?",
+  "channel_id": "1395578179531309089",
+  "guild_id": "1395578178973597799",
+  "author": {
+    "id": "human125",
+    "username": "TestUser",
+    "bot": false
+  },
+  "mentions": []
+}

@@ -40,10 +40,15 @@ services:
       # Logging
       - N8N_LOG_LEVEL=${LOG_LEVEL:-info}
       
+      # API Keys for workflows
+      - XAI_API_KEY=${XAI_API_KEY}
+      - DISCORD_TOKEN_GROK4=${DISCORD_TOKEN_GROK4}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY}
+      
     volumes:
       - n8n_data:/home/node/.n8n
-      - ./workflows:/home/node/.n8n/workflows:ro
-      - ./credentials:/home/node/.n8n/credentials:ro
+      - ../workflows:/home/node/.n8n/workflows:ro
     depends_on:
       postgres:
         condition: service_healthy

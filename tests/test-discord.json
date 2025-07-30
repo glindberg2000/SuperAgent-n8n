@@ -1,0 +1,12 @@
+{
+  "id": "1234567890",
+  "content": "Hello Grok4Agent!",
+  "channel_id": "9876543210",
+  "guild_id": "1111111111",
+  "author": {
+    "id": "2222222222",
+    "username": "TestUser",
+    "bot": false
+  },
+  "mentions": []
+}

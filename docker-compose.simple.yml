@@ -1,0 +1,122 @@
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-superagent}
+      POSTGRES_USER: ${POSTGRES_USER:-superagent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-superagent-db-2025}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-superagent} -d ${POSTGRES_DB:-superagent}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache (for future features)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # Combined Discord Bot + API Server
+  discord-bot:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.discord-bot
+    environment:
+      # Discord Configuration
+      DISCORD_TOKEN_GROK4: ${DISCORD_TOKEN_GROK4}
+      
+      # AI API Keys
+      XAI_API_KEY: ${XAI_API_KEY}
+      
+      # Database Configuration
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-superagent}
+      POSTGRES_USER: ${POSTGRES_USER:-superagent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-superagent-db-2025}
+      
+      # Optional: n8n webhook (for hybrid mode)
+      N8N_WEBHOOK_URL: http://n8n:5678/webhook/grok4-python-api
+    ports:
+      - "5001:5001"  # API server port
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+
+  # n8n (Optional - for advanced workflows)
+  n8n:
+    image: n8nio/n8n:latest
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-SuperAgent2025}
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB:-superagent}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER:-superagent}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-superagent-db-2025}
+      - WEBHOOK_URL=http://localhost:5678/
+      # API Keys for workflows (if needed)
+      - XAI_API_KEY=${XAI_API_KEY}
+      - DISCORD_TOKEN_GROK4=${DISCORD_TOKEN_GROK4}
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./workflows:/tmp/workflows:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    profiles:
+      - advanced  # Only start with --profile advanced
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  n8n_data:
+    driver: local
+
+networks:
+  default:
+    name: superagent-network

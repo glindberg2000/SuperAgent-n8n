@@ -22,12 +22,14 @@ app = Flask(__name__)
 XAI_API_KEY = os.getenv('XAI_API_KEY')
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN_GROK4')
 PORT = int(os.getenv('PORT', '5001'))
-# Handle Docker vs local development  
+# Handle Docker vs local development
 POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'localhost')
-POSTGRES_PORT = int(os.getenv('POSTGRES_PORT', '5436'))
+if POSTGRES_HOST == 'postgres':  # Docker container name
+    POSTGRES_HOST = 'localhost'
+POSTGRES_PORT = os.getenv('POSTGRES_PORT', '5432')
 POSTGRES_DB = os.getenv('POSTGRES_DB', 'superagent')
 POSTGRES_USER = os.getenv('POSTGRES_USER', 'superagent')
-POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', 'superagent-db-2025')
+POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', 'superagent_password')
 
 def get_db_connection():
     """Get PostgreSQL database connection"""

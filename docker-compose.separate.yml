@@ -1,0 +1,92 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-superagent}
+      POSTGRES_USER: ${POSTGRES_USER:-superagent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-superagent-db-2025}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-superagent} -d ${POSTGRES_DB:-superagent}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # API Server
+  api-server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-server
+    environment:
+      # Database Configuration (connect to postgres container)
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-superagent}
+      POSTGRES_USER: ${POSTGRES_USER:-superagent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-superagent-db-2025}
+      # AI API Keys
+      XAI_API_KEY: ${XAI_API_KEY}
+      DISCORD_TOKEN_GROK4: ${DISCORD_TOKEN_GROK4}
+    ports:
+      - "5001:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+
+  # Discord Bot
+  discord-bot:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.discord-bot-separate
+    environment:
+      # Discord Configuration
+      DISCORD_TOKEN_GROK4: ${DISCORD_TOKEN_GROK4}
+      # API Server URL
+      API_SERVER_URL: http://api-server:5001
+    depends_on:
+      api-server:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  default:
+    name: superagent-network-separate

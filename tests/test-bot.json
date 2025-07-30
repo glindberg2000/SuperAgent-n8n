@@ -1,0 +1,12 @@
+{
+  "id": "1234567891",
+  "content": "Hello from a bot!",
+  "channel_id": "9876543210",
+  "guild_id": "1111111111",
+  "author": {
+    "id": "3333333333",
+    "username": "TestBot",
+    "bot": true
+  },
+  "mentions": []
+}
