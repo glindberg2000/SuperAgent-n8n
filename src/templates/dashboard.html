@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid">
+    {% for bot_id, bot_data in bot_status_data.items() %}
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2>{{ bot_data.config.name }}</h2>
+            <span class="bot-status {{ bot_data.status }}">{{ bot_data.status.title() }}</span>
+        </div>
+        
+        <div class="metrics">
+            <div class="metric">
+                <span class="metric-label">Messages Today</span>
+                <span class="metric-value">{{ bot_data.stats.messages_today or 0 }}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Active Users</span>
+                <span class="metric-value">{{ bot_data.stats.unique_users_today or 0 }}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">LLM Provider</span>
+                <span class="metric-value">{{ bot_data.config.llm_provider|title }} ({{ bot_data.config.llm_model }})</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Last Message</span>
+                <span class="metric-value">
+                    {% if bot_data.stats.last_message_time %}
+                        {{ bot_data.stats.last_message_time.strftime('%H:%M:%S') }}
+                    {% else %}
+                        Never
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button class="btn" onclick="viewBotLogs('{{ bot_id }}')">View Logs</button>
+            <button class="btn" onclick="configureBoot('{{ bot_id }}')">Configure</button>
+            {% if bot_data.status == 'offline' %}
+                <button class="btn primary" onclick="toggleBot('{{ bot_id }}', true)">Start Bot</button>
+            {% else %}
+                <button class="btn" onclick="toggleBot('{{ bot_id }}', false)">Stop Bot</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    
+    <!-- Add New Bot Card -->
+    <div class="card" style="display: flex; align-items: center; justify-content: center; min-height: 250px; border-style: dashed;">
+        <div style="text-align: center;">
+            <div style="font-size: 3em; margin-bottom: 10px;">➕</div>
+            <button class="btn primary" onclick="addNewBot()">Add New Bot</button>
+        </div>
+    </div>
+</div>
+
+<!-- System Statistics -->
+<div class="card">
+    <h2>📊 System Statistics</h2>
+    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+        <div style="text-align: center;">
+            <div style="font-size: 2.5em; font-weight: bold; color: #5865F2;">
+                {{ system_stats.messages_today or 0 }}
+            </div>
+            <div style="color: #999; margin-top: 5px;">Messages Today</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="font-size: 2.5em; font-weight: bold; color: #5865F2;">
+                {{ system_stats.active_users_today or 0 }}
+            </div>
+            <div style="color: #999; margin-top: 5px;">Active Users</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="font-size: 2.5em; font-weight: bold; color: #5865F2;">
+                {{ system_stats.total_messages or 0 }}
+            </div>
+            <div style="color: #999; margin-top: 5px;">Total Messages</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="font-size: 2.5em; font-weight: bold; color: #5865F2;">
+                {{ system_health.services.ai_providers|length if system_health.services else 0 }}
+            </div>
+            <div style="color: #999; margin-top: 5px;">AI Providers</div>
+        </div>
+    </div>
+</div>
+
+<!-- System Health -->
+<div class="card">
+    <h2>🏥 System Health</h2>
+    <div class="metrics">
+        <div class="metric">
+            <span class="metric-label">API Server</span>
+            <span class="metric-value">
+                {% if system_health.status == 'healthy' %}
+                    ✅ Connected
+                {% else %}
+                    ❌ {{ system_health.get('error', 'Disconnected') }}
+                {% endif %}
+            </span>
+        </div>
+        <div class="metric">
+            <span class="metric-label">Database</span>
+            <span class="metric-value">
+                {% if system_health.services and system_health.services.database == 'connected' %}
+                    ✅ Connected
+                {% else %}
+                    ❌ Disconnected
+                {% endif %}
+            </span>
+        </div>
+        <div class="metric">
+            <span class="metric-label">AI Providers</span>
+            <span class="metric-value">
+                {% if system_health.services and system_health.services.ai_providers %}
+                    {{ system_health.services.ai_providers|join(', ')|title }}
+                {% else %}
+                    None configured
+                {% endif %}
+            </span>
+        </div>
+        <div class="metric">
+            <span class="metric-label">Last Updated</span>
+            <span class="metric-value" id="last-updated">{{ system_health.timestamp[:19] if system_health.timestamp else 'Unknown' }}</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function viewBotLogs(botId) {
+        window.location.href = `/logs?bot=${botId}`;
+    }
+    
+    function configureBoot(botId) {
+        window.location.href = `/config#${botId}`;
+    }
+    
+    function toggleBot(botId, start) {
+        const action = start ? 'start' : 'stop';
+        if (confirm(`Are you sure you want to ${action} the ${botId} bot?`)) {
+            // This would make an API call to start/stop the bot
+            alert(`${action.charAt(0).toUpperCase() + action.slice(1)} bot functionality coming soon!`);
+        }
+    }
+    
+    function addNewBot() {
+        window.location.href = '/config#new-bot';
+    }
+    
+    // Auto-refresh dashboard data
+    async function refreshDashboardData() {
+        try {
+            const response = await fetch('/api/stats');
+            const data = await response.json();
+            
+            // Update timestamp
+            document.getElementById('last-updated').textContent = 
+                new Date(data.timestamp).toLocaleString();
+            
+            // Could update other dynamic data here
+        } catch (error) {
+            console.error('Failed to refresh dashboard data:', error);
+        }
+    }
+    
+    // Refresh every 30 seconds
+    setInterval(refreshDashboardData, 30000);
+</script>
+{% endblock %}

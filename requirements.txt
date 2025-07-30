@@ -1,0 +1,30 @@
+# BotForge Dependencies
+# ===================
+
+# Discord Bot
+discord.py==2.3.2
+aiohttp==3.9.1
+
+# Web Framework
+Flask==3.0.0
+gunicorn==21.2.0
+
+# Database
+psycopg2-binary==2.9.9
+redis==5.0.1
+
+# AI Providers
+openai==1.6.1
+anthropic==0.8.1
+requests==2.31.0
+
+# Configuration
+PyYAML==6.0.1
+
+# Utilities  
+python-dotenv==1.0.0
+asyncio-throttle==1.0.2
+
+# Development/Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1

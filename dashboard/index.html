@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BotForge Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #fff;
+            font-size: 2em;
+        }
+        
+        .status {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: #555;
+        }
+        
+        .bot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .bot-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .bot-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        
+        .bot-status.online {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .bot-status.offline {
+            background: #666;
+            color: white;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            color: #999;
+        }
+        
+        .metric-value {
+            font-weight: 500;
+            color: #fff;
+        }
+        
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #444;
+            border-color: #666;
+        }
+        
+        button.primary {
+            background: #5865F2;
+            border-color: #5865F2;
+        }
+        
+        button.primary:hover {
+            background: #4752C4;
+            border-color: #4752C4;
+        }
+        
+        .stats {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .stats h2 {
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #5865F2;
+        }
+        
+        .stat-label {
+            color: #999;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 BotForge Dashboard</h1>
+            <div class="status">
+                <span class="status-indicator"></span>
+                <span>All Systems Operational</span>
+            </div>
+        </header>
+        
+        <div class="grid">
+            <!-- Grok4 Bot Card -->
+            <div class="card">
+                <div class="bot-header">
+                    <span class="bot-name">Grok4 Assistant</span>
+                    <span class="bot-status online">Online</span>
+                </div>
+                <div class="metrics">
+                    <div class="metric">
+                        <span class="metric-label">Messages Today</span>
+                        <span class="metric-value">247</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Active Users</span>
+                        <span class="metric-value">18</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Avg Response Time</span>
+                        <span class="metric-value">1.2s</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">LLM Provider</span>
+                        <span class="metric-value">X.AI (Grok-4)</span>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button>View Logs</button>
+                    <button>Configure</button>
+                    <button class="primary">Restart</button>
+                </div>
+            </div>
+            
+            <!-- Claude Bot Card -->
+            <div class="card">
+                <div class="bot-header">
+                    <span class="bot-name">Claude Assistant</span>
+                    <span class="bot-status offline">Offline</span>
+                </div>
+                <div class="metrics">
+                    <div class="metric">
+                        <span class="metric-label">Messages Today</span>
+                        <span class="metric-value">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Active Users</span>
+                        <span class="metric-value">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Avg Response Time</span>
+                        <span class="metric-value">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">LLM Provider</span>
+                        <span class="metric-value">Anthropic (Claude-3)</span>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button>View Logs</button>
+                    <button>Configure</button>
+                    <button class="primary">Start Bot</button>
+                </div>
+            </div>
+            
+            <!-- Add New Bot Card -->
+            <div class="card" style="display: flex; align-items: center; justify-content: center; min-height: 250px; border-style: dashed;">
+                <div style="text-align: center;">
+                    <div style="font-size: 3em; margin-bottom: 10px;">➕</div>
+                    <button class="primary">Add New Bot</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <h2>📊 System Statistics</h2>
+            <div class="stat-grid">
+                <div class="stat-item">
+                    <div class="stat-value">32,847</div>
+                    <div class="stat-label">Total Messages</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">156</div>
+                    <div class="stat-label">Unique Users</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">99.8%</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">2.3GB</div>
+                    <div class="stat-label">Database Size</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // This would connect to the API server for real data
+        async function fetchStats() {
+            try {
+                const response = await fetch('http://localhost:5001/stats');
+                const data = await response.json();
+                // Update UI with real data
+            } catch (error) {
+                console.error('Failed to fetch stats:', error);
+            }
+        }
+        
+        // Poll for updates every 30 seconds
+        setInterval(fetchStats, 30000);
+        fetchStats();
+    </script>
+</body>
+</html>

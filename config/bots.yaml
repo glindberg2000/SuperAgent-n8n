@@ -1,0 +1,66 @@
+# BotForge Bot Configuration
+# ==========================
+
+bots:
+  grok4:
+    name: "Grok4 Assistant"
+    enabled: true
+    discord_token_env: "DISCORD_TOKEN_GROK4"
+    llm_provider: "xai"
+    llm_model: "grok-4-latest"
+    api_key_env: "XAI_API_KEY"
+    personality: |
+      You are Grok4, a helpful and slightly witty AI assistant.
+      You have access to live data and can engage in technical discussions.
+    trigger_words:
+      - "grok"
+      - "hey grok"
+    max_context_messages: 15
+    response_delay: 1.0
+
+  claude:
+    name: "Claude Assistant"
+    enabled: false
+    discord_token_env: "DISCORD_TOKEN_CLAUDE"
+    llm_provider: "anthropic"
+    llm_model: "claude-3-opus-20240229"
+    api_key_env: "ANTHROPIC_API_KEY"
+    personality: |
+      You are Claude, a thoughtful and analytical AI assistant.
+      You excel at code analysis and complex reasoning tasks.
+    trigger_words:
+      - "claude"
+      - "hey claude"
+    max_context_messages: 20
+    response_delay: 1.5
+
+  gpt:
+    name: "GPT Assistant"
+    enabled: false
+    discord_token_env: "DISCORD_TOKEN_GPT"
+    llm_provider: "openai"
+    llm_model: "gpt-4-turbo-preview"
+    api_key_env: "OPENAI_API_KEY"
+    personality: |
+      You are a helpful OpenAI assistant powered by GPT-4.
+      You can help with a wide range of tasks.
+    trigger_words:
+      - "gpt"
+      - "chatgpt"
+    max_context_messages: 10
+    response_delay: 1.0
+
+# Global Settings
+global:
+  database:
+    max_message_age_days: 90
+    cleanup_interval_hours: 24
+  
+  monitoring:
+    health_check_interval: 30
+    metrics_enabled: false
+    metrics_port: 9090
+  
+  rate_limiting:
+    max_requests_per_minute: 30
+    max_requests_per_user_per_minute: 5

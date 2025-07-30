@@ -1,132 +1,172 @@
-# SuperAgent n8n - AI Discord Bot with Memory
+# BotForge - Multi-Bot AI Discord Platform
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Grok4](https://img.shields.io/badge/Grok4-AI-red.svg)](https://x.ai/)
+> **Note**: This project was previously called "SuperAgent-n8n". The n8n dependency has been removed in favor of a streamlined containerized architecture.
 
-A **production-ready Discord bot** with **zero-friction setup** - get an AI-powered Discord bot with full memory running in under 2 minutes!
+## 🤖 What is BotForge?
 
-## 🎯 **Features**
+BotForge is a containerized platform for running multiple AI-powered Discord bots with persistent memory. Each bot can use different LLMs (Grok4, Claude, GPT-4) and maintains conversation history per user and channel.
 
-- 🤖 **Grok4 AI Integration** - Latest Grok-4 model with live data access
-- 🧠 **Full Memory System** - Remembers conversation history per user/channel  
-- 🔗 **Discord Threading** - Proper reply chains and message references
-- 📊 **PostgreSQL Storage** - Persistent conversation and user data
-- 🐳 **One-Command Deploy** - Complete setup with single script
-- ⚡ **Real-time Processing** - Sub-second response times
-- 🛡️ **Error Handling** - Graceful fallbacks for API timeouts
-- 📊 **Built-in Monitoring** - Health checks and statistics endpoints
+## ✨ Features
 
-## 🏗️ **Architecture**
+- 🤖 **Multiple Bot Support** - Run different bots with different LLMs simultaneously
+- 🧠 **Persistent Memory** - Each bot remembers conversation history
+- 🐳 **Fully Containerized** - Easy deployment with Docker
+- 🔧 **Configurable** - YAML-based bot configuration
+- 📊 **Monitoring** - Health checks and statistics endpoints
+- 🚀 **Scalable** - Add new bots without code changes
+
+## 🏗️ Architecture
 
 ```
-Discord Message → Combined Python Service → PostgreSQL + Grok4 → Discord Response
+Discord → Discord Bot Container → API Server → PostgreSQL + LLM APIs → Discord
+                                       ↓
+                                 Web Dashboard (Port 3000)
 ```
 
-**Why This Design:**
-- **Simple**: Single containerized service, no complex orchestration
-- **Reliable**: Direct API calls, no middleware dependencies
-- **Fast**: Minimal latency with direct processing
-- **Maintainable**: Everything in one place, easy to debug
+## 🚀 Quick Start
 
-## 🚀 **Zero-Friction Setup**
+### 1. Prerequisites
+- Docker and Docker Compose
+- Discord bot token(s)
+- API key(s) for your chosen LLM(s)
+
+### 2. Setup
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/glindberg2000/SuperAgent-n8n.git
-cd SuperAgent-n8n
+# Clone the repository
+git clone https://github.com/yourusername/botforge.git
+cd botforge
 
-# 2. One-command setup (creates .env, starts everything)
-./start.sh
-```
+# Copy and configure environment
+cp .env.example .env
+# Edit .env with your tokens and API keys
 
-**That's it!** The script will:
-- ✅ Check dependencies (Docker, Docker Compose)
-- ✅ Create `.env` file with template (you add your keys)
-- ✅ Start PostgreSQL database with auto-initialization
-- ✅ Build and start Discord bot service
-- ✅ Wait for services to be healthy
-- ✅ Show you monitoring URLs and test instructions
+# Start all services
+docker-compose up -d
 
-## 🔑 **Required API Keys**
-
-You need just **two things**:
-
-1. **Discord Bot Token** - Get from [Discord Developer Portal](https://discord.com/developers/applications)
-2. **Grok4 API Key** - Get from [x.ai](https://x.ai)
-
-The setup script creates a `.env` file template - just fill in your keys and run `./start.sh` again!
-
-## 📁 **Repository Structure**
-
-```
-SuperAgent-n8n/
-├── discord_combined_service.py    # Main Discord bot + API server
-├── start.sh                       # One-command setup script
-├── docker-compose.simple.yml      # Docker configuration
-├── requirements-api.txt           # Python dependencies
-├── docker/                        # Docker build files
-│   ├── Dockerfile.discord-bot     # Container definition
-│   └── init.sql                   # Database schema
-├── tests/                         # Test configurations
-├── docs/                          # Comprehensive documentation
-└── workflows/                     # Optional n8n workflows (advanced)
-```
-
-## 📊 **Monitoring & Health Checks**
-
-Once running, monitor your bot with built-in endpoints:
-
-```bash
-# Check if everything is healthy
+# Check health
 curl http://localhost:5001/health
 
-# View bot statistics
-curl http://localhost:5001/stats
-
-# Watch real-time logs  
-docker-compose -f docker-compose.simple.yml logs -f discord-bot
+# Access dashboard
+open http://localhost:3000
 ```
 
-## 🎛️ **Advanced Setup (Optional)**
+### 3. Test Your Bot
 
-Want visual workflow management? Add n8n:
+In Discord:
+- Mention your bot: `@Grok4 hello!`
+- Use trigger words: `hey grok, what's the weather?`
+
+## 📁 Project Structure
+
+```
+botforge/
+├── docker-compose.yml      # Main orchestration file
+├── .env                    # Your configuration (create from .env.example)
+├── config/
+│   └── bots.yaml          # Bot personalities and settings
+├── src/
+│   ├── discord_bot.py     # Discord connection handler
+│   └── api_server.py      # API server with LLM integration
+├── docker/
+│   ├── Dockerfile.bot     # Discord bot container
+│   ├── Dockerfile.api     # API server container
+│   └── init.sql          # Database schema
+├── dashboard/             # Web dashboard UI
+└── logs/                  # Application logs
+```
+
+## 🔧 Configuration
+
+### Bot Configuration (config/bots.yaml)
+
+```yaml
+bots:
+  grok4:
+    name: "Grok4 Assistant"
+    enabled: true
+    llm_provider: "xai"
+    llm_model: "grok-4-latest"
+    personality: "You are Grok4, a helpful AI assistant..."
+    trigger_words: ["grok", "hey grok"]
+```
+
+### Environment Variables
+
+Only configure what you need:
+- `DISCORD_TOKEN_*` - Bot tokens
+- `XAI_API_KEY` - For Grok4
+- `ANTHROPIC_API_KEY` - For Claude
+- `OPENAI_API_KEY` - For GPT
+
+## 📊 Monitoring
+
+### Health Check
+```bash
+curl http://localhost:5001/health
+```
+
+### Statistics
+```bash
+curl http://localhost:5001/stats
+```
+
+### Logs
+```bash
+# All services
+docker-compose logs -f
+
+# Specific bot
+docker-compose logs -f discord-bot-grok4
+```
+
+## 🛠️ Common Operations
+
+### Add a New Bot
+
+1. Add Discord token to `.env`
+2. Add bot configuration to `config/bots.yaml`
+3. Restart services: `docker-compose restart`
+
+### Backup Database
 
 ```bash
-# Start with advanced features
-./start.sh --advanced
+# Get the actual container name first
+docker ps --format "table {{.Names}}" | grep postgres
+
+# Then backup (container name may vary based on your setup)
+docker exec [postgres-container-name] pg_dump -U botforge botforge > backup.sql
 ```
 
-This adds:
-- 🔄 **n8n Visual Editor**: `http://localhost:5678` (admin / superagent-n8n-2025)
-- 📝 **Workflow Management**: Import from `workflows/` directory
-- 🔧 **Custom Logic**: Visual programming for complex responses
+### Update Bot Personality
 
-## 💡 **Features in Detail**
+1. Edit `config/bots.yaml`
+2. Restart the bot: `docker-compose restart discord-bot-grok4`
 
-- **🧠 Smart Memory**: Remembers context across conversations per user/channel
-- **⚡ Fast Responses**: Direct processing, <2 second response times
-- **🛡️ Error Recovery**: Graceful fallbacks for API timeouts and errors
-- **📊 Statistics**: Track usage, response times, and user engagement
-- **🔍 Debug Mode**: Comprehensive logging for troubleshooting
-- **🐳 Zero Config**: Everything configured with sensible defaults
+## 🚧 Roadmap
 
-## 🚀 **Success Metrics**
+- [x] Web Dashboard for bot management
+- [x] Real-time metrics and monitoring
+- [ ] Plugin system for custom commands
+- [ ] Multi-server configuration UI
+- [ ] Conversation analytics
+- [ ] Export conversation history
 
-- **Setup Time**: <2 minutes from clone to running bot
-- **Response Rate**: >99% of mentions get responses  
-- **Response Time**: <2 seconds average
-- **Memory Accuracy**: Contextual responses using conversation history
-- **Uptime**: >99.9% with Docker restart policies
+## 🤝 Contributing
 
-## 🔗 **Resources**
+Contributions are welcome! Please read our contributing guidelines before submitting PRs.
 
-- 📚 [Complete Documentation](docs/)
-- 🎮 [Discord Developer Portal](https://discord.com/developers/applications)
-- 🤖 [Grok4 API Documentation](https://x.ai)
-- 🐳 [Docker Installation](https://docs.docker.com/get-docker/)
+## 📝 License
+
+MIT License - see LICENSE file for details
+
+## ⚠️ Migration from SuperAgent-n8n
+
+If you're migrating from the old n8n-based system:
+1. Your database is compatible - just update the connection settings
+2. Workflows are no longer needed - the system is code-based now
+3. Check `legacy/` folder for old configurations
 
 ---
 
-**Built for Simplicity**: This system replaces complex MCP/n8n orchestration with a single, reliable service that "just works".
+**Built with ❤️ for the Discord community**

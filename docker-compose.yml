@@ -1,0 +1,129 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-botforge}
+      POSTGRES_USER: ${POSTGRES_USER:-botforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-botforge-db-2025}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-botforge} -d ${POSTGRES_DB:-botforge}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # API Server
+  api-server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api-server
+    environment:
+      # Database Configuration
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-botforge}
+      POSTGRES_USER: ${POSTGRES_USER:-botforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-botforge-db-2025}
+      # AI API Keys
+      XAI_API_KEY: ${XAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      DISCORD_TOKEN_GROK4: ${DISCORD_TOKEN_GROK4}
+    ports:
+      - "5001:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+
+  # Discord Bot - Grok4
+  discord-bot-grok4:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.discord-bot
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN_GROK4}
+      BOT_NAME: "Grok4"
+      API_SERVER_URL: http://api-server:5001
+    depends_on:
+      api-server:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+
+  # Dashboard
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dashboard
+    environment:
+      # Database Configuration
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-botforge}
+      POSTGRES_USER: ${POSTGRES_USER:-botforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-botforge-db-2025}
+      # API Server
+      API_SERVER_URL: http://api-server:5001
+      # Dashboard Settings
+      DASHBOARD_SECRET: ${DASHBOARD_SECRET:-dev-secret-change-in-production}
+    ports:
+      - "3000:3000"
+    depends_on:
+      api-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  default:
+    name: botforge-network
+
+# Container naming will be: botforge-postgres-1, botforge-api-server-1, etc.

@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>🔧 Bot Configuration</h2>
+    <p style="color: #999; margin-bottom: 20px;">
+        Configure your bots, LLM providers, and system settings. Changes will require a bot restart to take effect.
+    </p>
+    
+    <form id="config-form">
+        <h3 style="color: #fff; margin: 30px 0 15px 0;">Bot Settings</h3>
+        
+        {% for bot_id, bot_config in bot_configs.bots.items() %}
+        <div class="card" style="margin: 20px 0;">
+            <h4 style="color: #fff; margin-bottom: 15px;">{{ bot_config.name }} ({{ bot_id }})</h4>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #ccc;">Bot Name:</label>
+                    <input type="text" name="bots.{{ bot_id }}.name" value="{{ bot_config.name }}" 
+                           style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;">
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #ccc;">Enabled:</label>
+                    <select name="bots.{{ bot_id }}.enabled" 
+                            style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;">
+                        <option value="true" {% if bot_config.enabled %}selected{% endif %}>Yes</option>
+                        <option value="false" {% if not bot_config.enabled %}selected{% endif %}>No</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #ccc;">LLM Provider:</label>
+                    <select name="bots.{{ bot_id }}.llm_provider" 
+                            style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;">
+                        <option value="xai" {% if bot_config.llm_provider == 'xai' %}selected{% endif %}>X.AI (Grok)</option>
+                        <option value="anthropic" {% if bot_config.llm_provider == 'anthropic' %}selected{% endif %}>Anthropic (Claude)</option>
+                        <option value="openai" {% if bot_config.llm_provider == 'openai' %}selected{% endif %}>OpenAI (GPT)</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #ccc;">Model:</label>
+                    <input type="text" name="bots.{{ bot_id }}.llm_model" value="{{ bot_config.llm_model }}" 
+                           style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;">
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #ccc;">Max Context Messages:</label>
+                    <input type="number" name="bots.{{ bot_id }}.max_context_messages" value="{{ bot_config.max_context_messages or 15 }}" 
+                           style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;">
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #ccc;">Response Delay (seconds):</label>
+                    <input type="number" step="0.1" name="bots.{{ bot_id }}.response_delay" value="{{ bot_config.response_delay or 1.0 }}" 
+                           style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;">
+                </div>
+            </div>
+            
+            <div style="margin: 15px 0;">
+                <label style="display: block; margin-bottom: 5px; color: #ccc;">Trigger Words (comma-separated):</label>
+                <input type="text" name="bots.{{ bot_id }}.trigger_words" 
+                       value="{{ bot_config.trigger_words|join(', ') if bot_config.trigger_words else '' }}" 
+                       style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;">
+            </div>
+            
+            <div style="margin: 15px 0;">
+                <label style="display: block; margin-bottom: 5px; color: #ccc;">Personality/System Prompt:</label>
+                <textarea name="bots.{{ bot_id }}.personality" rows="4" 
+                          style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px; resize: vertical;">{{ bot_config.personality or '' }}</textarea>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <!-- Global Settings -->
+        <h3 style="color: #fff; margin: 30px 0 15px 0;">Global Settings</h3>
+        
+        <div class="card">
+            <h4 style="color: #fff; margin-bottom: 15px;">Database Settings</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #ccc;">Message Retention (days):</label>
+                    <input type="number" name="global.database.max_message_age_days" 
+                           value="{{ bot_configs.global.database.max_message_age_days if bot_configs.global and bot_configs.global.database else 90 }}" 
+                           style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;">
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #ccc;">Cleanup Interval (hours):</label>
+                    <input type="number" name="global.database.cleanup_interval_hours" 
+                           value="{{ bot_configs.global.database.cleanup_interval_hours if bot_configs.global and bot_configs.global.database else 24 }}" 
+                           style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;">
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h4 style="color: #fff; margin-bottom: 15px;">Rate Limiting</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #ccc;">Max Requests per Minute:</label>
+                    <input type="number" name="global.rate_limiting.max_requests_per_minute" 
+                           value="{{ bot_configs.global.rate_limiting.max_requests_per_minute if bot_configs.global and bot_configs.global.rate_limiting else 30 }}" 
+                           style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;">
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px; color: #ccc;">Max Requests per User per Minute:</label>
+                    <input type="number" name="global.rate_limiting.max_requests_per_user_per_minute" 
+                           value="{{ bot_configs.global.rate_limiting.max_requests_per_user_per_minute if bot_configs.global and bot_configs.global.rate_limiting else 5 }}" 
+                           style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px;">
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin: 30px 0; text-align: center;">
+            <button type="button" class="btn" onclick="resetForm()">Reset Changes</button>
+            <button type="submit" class="btn primary">Save Configuration</button>
+        </div>
+    </form>
+</div>
+
+<!-- Configuration Preview -->
+<div class="card">
+    <h2>📋 Configuration Preview</h2>
+    <p style="color: #999; margin-bottom: 15px;">Live preview of your configuration file:</p>
+    <pre id="config-preview" style="background: #000; padding: 15px; border-radius: 6px; overflow-x: auto; color: #00ff00; font-family: 'Courier New', monospace;"></pre>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let originalConfig = {{ bot_configs|tojson }};
+    
+    function updateConfigPreview() {
+        const formData = new FormData(document.getElementById('config-form'));
+        const config = {
+            bots: {},
+            global: {
+                database: {},
+                rate_limiting: {}
+            }
+        };
+        
+        // Process form data
+        for (let [key, value] of formData.entries()) {
+            const parts = key.split('.');
+            let obj = config;
+            
+            for (let i = 0; i < parts.length - 1; i++) {
+                if (!obj[parts[i]]) {
+                    obj[parts[i]] = {};
+                }
+                obj = obj[parts[i]];
+            }
+            
+            const lastKey = parts[parts.length - 1];
+            
+            // Handle special cases
+            if (key.includes('trigger_words')) {
+                obj[lastKey] = value.split(',').map(s => s.trim()).filter(s => s);
+            } else if (key.includes('enabled')) {
+                obj[lastKey] = value === 'true';
+            } else if (key.includes('max_context_messages') || key.includes('max_message_age_days') || 
+                      key.includes('cleanup_interval_hours') || key.includes('max_requests_per_minute') || 
+                      key.includes('max_requests_per_user_per_minute')) {
+                obj[lastKey] = parseInt(value) || 0;
+            } else if (key.includes('response_delay')) {
+                obj[lastKey] = parseFloat(value) || 0;
+            } else {
+                obj[lastKey] = value;
+            }
+        }
+        
+        // Update preview
+        document.getElementById('config-preview').textContent = 
+            JSON.stringify(config, null, 2);
+    }
+    
+    function resetForm() {
+        if (confirm('Are you sure you want to reset all changes?')) {
+            location.reload();
+        }
+    }
+    
+    document.getElementById('config-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!confirm('Save configuration changes? This may require restarting bots.')) {
+            return;
+        }
+        
+        try {
+            // Get form data as config object
+            const formData = new FormData(this);
+            const config = {
+                bots: {},
+                global: {
+                    database: {},
+                    rate_limiting: {}
+                }
+            };
+            
+            // Process form data (same logic as preview)
+            for (let [key, value] of formData.entries()) {
+                const parts = key.split('.');
+                let obj = config;
+                
+                for (let i = 0; i < parts.length - 1; i++) {
+                    if (!obj[parts[i]]) {
+                        obj[parts[i]] = {};
+                    }
+                    obj = obj[parts[i]];
+                }
+                
+                const lastKey = parts[parts.length - 1];
+                
+                if (key.includes('trigger_words')) {
+                    obj[lastKey] = value.split(',').map(s => s.trim()).filter(s => s);
+                } else if (key.includes('enabled')) {
+                    obj[lastKey] = value === 'true';
+                } else if (key.includes('max_context_messages') || key.includes('max_message_age_days') || 
+                          key.includes('cleanup_interval_hours') || key.includes('max_requests_per_minute') || 
+                          key.includes('max_requests_per_user_per_minute')) {
+                    obj[lastKey] = parseInt(value) || 0;
+                } else if (key.includes('response_delay')) {
+                    obj[lastKey] = parseFloat(value) || 0;
+                } else {
+                    obj[lastKey] = value;
+                }
+            }
+            
+            // Send to server
+            const response = await fetch('/config/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config)
+            });
+            
+            if (response.ok) {
+                alert('Configuration saved successfully!');
+                window.location.reload();
+            } else {
+                const error = await response.json();
+                alert('Failed to save configuration: ' + (error.error || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error saving configuration: ' + error.message);
+        }
+    });
+    
+    // Update preview when form changes
+    document.getElementById('config-form').addEventListener('input', updateConfigPreview);
+    document.getElementById('config-form').addEventListener('change', updateConfigPreview);
+    
+    // Initial preview
+    updateConfigPreview();
+</script>
+{% endblock %}
